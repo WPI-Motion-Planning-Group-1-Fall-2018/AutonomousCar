@@ -1,5 +1,6 @@
 <?xml version="1.0"?>
 <launch>
+<!-- SIM STUFF -->
   <arg name="model" default="$(find prius_description)/urdf/prius.urdf"/>
   <arg name="rvizconfig" default="$(find car_demo)/rviz/demo.rviz" />
 
@@ -17,5 +18,7 @@
 
   <node name="spawn_urdf" pkg="gazebo_ros" type="spawn_model" args="-param robot_description -urdf -x 3 -y -12 -z 0.5 -model prius"/>
 
-  <node name="rviz" pkg="rviz" type="rviz" args="-d $(arg rvizconfig)" required="true" />
+  <!--CONTROL/MP NODES-->
+  <node pkg="prius_controller" type="prius_controller_node" name="prius_controller" output="screen"/>
+
 </launch>

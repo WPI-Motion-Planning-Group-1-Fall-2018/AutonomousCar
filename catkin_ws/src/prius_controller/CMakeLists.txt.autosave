@@ -150,7 +150,7 @@ add_dependencies(${PROJECT_NAME}_node prius_msgs_generate_messages_cpp)
 target_link_libraries(${PROJECT_NAME}_node
    ${catkin_LIBRARIES}
 )
-catkin_package()
+
 
 
 #############

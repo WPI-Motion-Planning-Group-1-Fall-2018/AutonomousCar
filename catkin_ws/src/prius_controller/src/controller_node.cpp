@@ -3,7 +3,7 @@
 
 int main(int argc, char **argv)
 {
-  ros::init(argc, argv, "behaviors_node");
+  ros::init(argc, argv, "controller_node");
 
   ros::NodeHandle nh;
 
@@ -11,7 +11,7 @@ int main(int argc, char **argv)
 
   Prius::PriusController cont(nh, pnh);
 
-  ros::Rate rate(50);
+  ros::Rate rate(100);
 
   while(ros::ok)
   {

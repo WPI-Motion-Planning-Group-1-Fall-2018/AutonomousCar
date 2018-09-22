@@ -23,12 +23,13 @@ PriusController::PriusController(ros::NodeHandle &nh, ros::NodeHandle &pnh)
   pnh.getParam("kd_p", m_kd_p);
 }
 
-PriusController::~PriusController(){}
+PriusController::~PriusController()
+{
+  ROS_INFO_STREAM("PriusController destructor called");
+}
 
 void PriusController::calculateAndPublishControls()
 {
-  calculateYawRate();
-
   calculateControls();
 
   publishControls();
@@ -91,7 +92,29 @@ void PriusController::calculatePedals()
 
   auto speed = calculateSpeed();
 
-  double error = m_mp_control.speed - speed;
+  if(speed > m_mp_control.max_speed)
+  {
+    speed = m_mp_control.max_speed;
+  }
+
+  double set_point;
+
+  if(m_mp_control.speed > speed)
+  {
+    set_point = speed + m_mp_control.max_accel * dt_p.toSec();
+  }
+
+  if(m_mp_control.speed < speed)
+  {
+    set_point = speed - m_mp_control.max_accel * dt_p.toSec();
+  }
+
+  else
+  {
+    set_point = m_mp_control.speed;
+  }
+
+  double error = m_mp_control.speed - set_point;
 
   m_int_p += error * dt_p.toSec();
 
@@ -118,10 +141,14 @@ void PriusController::calculatePedals()
 
   if(error < 0)
   {
-    m_control.brake = control_speed;
+    m_control.brake = -control_speed;
 
     m_control.throttle = 0;
   }
+
+  m_previous_time_p = ros::Time::now();
+
+  m_prev_err_p = error;
 }
 
 void PriusController::publishControls()
@@ -152,7 +179,6 @@ void PriusController::extractPriusPose()
       break;
     }
   }
-
 }
 
 void PriusController::motionPlanningCallback(const prius_msgs::MotionPlanning::ConstPtr &msg)
@@ -168,6 +194,4 @@ void PriusController::gazeboStatesCallback(const gazebo_msgs::ModelStates::Const
 
   extractPriusPose();
 }
-
-
 }

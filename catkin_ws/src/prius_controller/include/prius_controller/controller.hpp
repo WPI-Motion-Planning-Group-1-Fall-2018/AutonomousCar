@@ -72,6 +72,8 @@ class PriusController
 
     ros::Duration dt_p;
 
+    double prev_speed = 0;
+
     double m_prev_err_p = 0;
 
     double m_int_p = 0;
