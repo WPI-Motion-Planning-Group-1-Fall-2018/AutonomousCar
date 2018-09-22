@@ -1,6 +1,8 @@
 #pragma once
 
 #include <ros/ros.h>
+#include <dynamic_reconfigure/server.h>
+#include <prius_controller/PriusControllerConfig.h>
 #include <gazebo_msgs/ModelState.h>
 #include <gazebo_msgs/ModelStates.h>
 #include <prius_msgs/Control.h>
@@ -19,6 +21,9 @@ class PriusController
     void calculateAndPublishControls();
 
   private:
+
+    //private functions
+    void dynamicReconfigureCallback(prius_controller::PriusControllerConfig &config, uint32_t level);
 
     void motionPlanningCallback(const prius_msgs::MotionPlanning::ConstPtr &msg);
 
@@ -40,12 +45,20 @@ class PriusController
 
     void extractPriusPose();
 
+    //subpubs
+
     ros::Subscriber motion_planning_sub;
 
     ros::Subscriber gazebo_state_sub;
 
     ros::Publisher control_pub;
 
+    //dynamic reconfigure
+    dynamic_reconfigure::Server<prius_controller::PriusControllerConfig> server;
+
+    dynamic_reconfigure::Server<prius_controller::PriusControllerConfig>::CallbackType f;
+
+    //messages
     prius_msgs::MotionPlanning m_mp_control;
 
     prius_msgs::Control m_control;
@@ -54,6 +67,8 @@ class PriusController
 
     gazebo_msgs::ModelState m_prius_state;
 
+
+    //steering PID stuff
     ros::Time m_previous_time_s = ros::Time::now();
 
     ros::Duration dt_s;
@@ -67,6 +82,8 @@ class PriusController
     double m_ki_s;
 
     double m_kd_s;
+
+    //speed PID stuff
 
     ros::Time m_previous_time_p = ros::Time::now();
 

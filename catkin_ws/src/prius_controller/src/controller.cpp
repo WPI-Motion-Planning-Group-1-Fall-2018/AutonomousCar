@@ -10,22 +10,29 @@ PriusController::PriusController(ros::NodeHandle &nh, ros::NodeHandle &pnh)
 
   control_pub = pnh.advertise<prius_msgs::Control>("/prius/control", 100);
 
-  pnh.getParam("kp_s", m_kp_s);
+  f = boost::bind(&PriusController::dynamicReconfigureCallback, this, _1, _2);
 
-  pnh.getParam("ki_s", m_ki_s);
-
-  pnh.getParam("kd_S", m_kd_s);
-
-  pnh.getParam("kp_p", m_kp_p);
-
-  pnh.getParam("ki_p", m_ki_p);
-
-  pnh.getParam("kd_p", m_kd_p);
+  server.setCallback(f);
 }
 
 PriusController::~PriusController()
 {
   ROS_INFO_STREAM("PriusController destructor called");
+}
+
+void PriusController::dynamicReconfigureCallback(prius_controller::PriusControllerConfig &config, uint32_t level)
+{
+    m_kp_s = config.kp_s;
+
+    m_ki_s = config.ki_s;
+
+    m_kd_s = config.kd_s;
+
+    m_kp_p = config.kp_p;
+
+    m_ki_p = config.ki_p;
+
+    m_kd_p = config.kd_p;
 }
 
 void PriusController::calculateAndPublishControls()

@@ -12,6 +12,8 @@ find_package(catkin REQUIRED COMPONENTS
   prius_msgs
   message_generation
   roscpp
+  rospy
+  dynamic_reconfigure
 )
 
 ## System dependencies are found with CMake's conventions
@@ -86,10 +88,10 @@ find_package(catkin REQUIRED COMPONENTS
 ##     and list every .cfg file to be processed
 
 ## Generate dynamic reconfigure parameters in the 'cfg' folder
-# generate_dynamic_reconfigure_options(
-#   cfg/DynReconf1.cfg
+ generate_dynamic_reconfigure_options(
+   cfg/prius_controller.cfg
 #   cfg/DynReconf2.cfg
-# )
+)
 
 ###################################
 ## catkin specific configuration ##
@@ -103,7 +105,7 @@ find_package(catkin REQUIRED COMPONENTS
 catkin_package(
   INCLUDE_DIRS include
 #  LIBRARIES prius_controller
-  CATKIN_DEPENDS prius_msgs roscpp message_generation gazebo_msgs
+  CATKIN_DEPENDS prius_msgs roscpp message_generation gazebo_msgs rospy dynamic_reconfigure
 #  DEPENDS system_lib
 )
 
@@ -145,12 +147,13 @@ include_directories(
 ## same as for the library above
 add_dependencies(${PROJECT_NAME}_node ${catkin_EXPORTED_TARGETS})
 add_dependencies(${PROJECT_NAME}_node prius_msgs_generate_messages_cpp)
+add_dependencies(${PROJECT_NAME}_node ${PROJECT_NAME}_gencfg)
 
 ## Specify libraries to link a library or executable target against
 target_link_libraries(${PROJECT_NAME}_node
    ${catkin_LIBRARIES}
 )
-catkin_package()
+
 
 
 #############
