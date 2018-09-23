@@ -7,6 +7,7 @@ ENV LD_LIBRARY_PATH /usr/local/nvidia/lib:/usr/local/nvidia/lib64:${LD_LIBRARY_P
 RUN apt-get update \
  && apt-get install -y \
     wget \
+    ruby \
     lsb-release \
     sudo \
     mesa-utils \
@@ -25,6 +26,16 @@ RUN echo "deb http://packages.osrfoundation.org/gazebo/ubuntu `lsb_release -cs` 
  && apt-get clean
 
 
+COPY src/ /tmp/workspace/src/
+RUN mkdir -p /tmp/workspace/src/citysim/build
+RUN /bin/bash -c 'cd /tmp/workspace/src/citysim/build \
+ && cmake .. \
+ && make install \
+ && cd .. \
+ && cd worlds\
+ && erb simple_city.world.erb > simple_city.world \
+ && chmod +x /usr/local/share/citysim/setup.sh'
+
 RUN mkdir -p /tmp/workspace/src
 COPY src/ /tmp/workspace/src/
 RUN /bin/bash -c 'cd /tmp/workspace \
@@ -32,4 +43,4 @@ RUN /bin/bash -c 'cd /tmp/workspace \
  && catkin_make'
 
 
-CMD ["/bin/bash", "-c", "source /opt/ros/kinetic/setup.bash && source /tmp/workspace/devel/setup.bash && roslaunch car_demo demo.launch"]
+CMD ["/bin/bash", "-c", "source /opt/ros/kinetic/setup.bash && source /tmp/workspace/devel/setup.bash && export GAZEBO_MODEL_PATH=$GAZEBO_MODEL_PATH:/tmp/workspace/src/citysim/models && ./usr/local/share/citysim/setup.sh && cd /tmp/workspace/src/citysim && export ROS_MASTER_URI=http://192.168.1.3:11311 && roslaunch car_demo demo.launch"]
