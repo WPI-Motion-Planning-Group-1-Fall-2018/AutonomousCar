@@ -4,11 +4,19 @@ namespace Prius {
 
 PriusController::PriusController(ros::NodeHandle &nh, ros::NodeHandle &pnh)
 {
+  ROS_INFO_STREAM("Subscribing to /mp");
+
   motion_planning_sub = nh.subscribe<prius_msgs::MotionPlanning>("/mp", 100, &PriusController::motionPlanningCallback, this);
+
+  ROS_INFO_STREAM("Subscribing to /gazebo/model_states");
 
   gazebo_state_sub = nh.subscribe<gazebo_msgs::ModelStates>("/gazebo/model_states", 100, &PriusController::gazeboStatesCallback, this);
 
+  ROS_INFO_STREAM("Publishing to /prius/control");
+
   control_pub = pnh.advertise<prius_msgs::Control>("/prius/control", 100);
+
+  ROS_INFO_STREAM("Setting Up Dynamic Reconfigure Server");
 
   f = boost::bind(&PriusController::dynamicReconfigureCallback, this, _1, _2);
 
@@ -17,11 +25,13 @@ PriusController::PriusController(ros::NodeHandle &nh, ros::NodeHandle &pnh)
 
 PriusController::~PriusController()
 {
-  ROS_INFO_STREAM("PriusController destructor called");
+  ROS_INFO_STREAM("PriusController Destructor Called");
 }
 
 void PriusController::dynamicReconfigureCallback(prius_controller::PriusControllerConfig &config, uint32_t level)
 {
+    ROS_INFO_STREAM("Dynamic Reconfigure Updated");
+
     m_kp_s = config.kp_s;
 
     m_ki_s = config.ki_s;
