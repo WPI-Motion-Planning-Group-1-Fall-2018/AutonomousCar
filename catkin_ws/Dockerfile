@@ -43,4 +43,4 @@ RUN /bin/bash -c 'cd /tmp/workspace \
  && catkin_make'
 
 
-CMD ["/bin/bash", "-c", "source /opt/ros/kinetic/setup.bash && source /tmp/workspace/devel/setup.bash && export GAZEBO_MODEL_PATH=$GAZEBO_MODEL_PATH:/tmp/workspace/src/citysim/models && ./usr/local/share/citysim/setup.sh && cd /tmp/workspace/src/citysim && export ROS_MASTER_URI=http://192.168.1.3:11311 && roslaunch car_demo demo.launch"]
+CMD ["/bin/bash", "-c", "source /opt/ros/kinetic/setup.bash && source /tmp/workspace/devel/setup.bash && export GAZEBO_MODEL_PATH=$GAZEBO_MODEL_PATH:/tmp/workspace/src/citysim/models && ./usr/local/share/citysim/setup.sh && cd /tmp/workspace/src/citysim && roslaunch car_demo demo.launch"]
