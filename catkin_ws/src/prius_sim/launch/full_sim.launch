@@ -3,9 +3,15 @@
 <!-- SIM STUFF -->
   <arg name="model" default="$(find prius_description)/urdf/prius.urdf"/>
   <param name="robot_description" textfile="$(arg model)"/>
-  <param name="use_sim_time" value="true" />
+  <arg name="rvizconfig" default="$(find prius_sim)/rviz/demo.rviz" />
 
-<!-- GAZEBO_ROS -->
+  <node pkg="robot_state_publisher" type="robot_state_publisher" name="robot_state_publisher">
+    <param name="publish_frequency" value="1000"/>
+  </node>
+
+    <!--Gazebo-->
+
+    <!-- these are the arguments you can pass this launch file, for example paused:=true -->
     <arg name="paused" default="false"/>
     <arg name="use_sim_time" default="true"/>
     <arg name="extra_gazebo_args" default=""/>
@@ -41,30 +47,25 @@
       <param name="gazebo/pub_clock_frequency" value="$(arg pub_clock_frequency)" />
     </group>
     <node name="gazebo" pkg="gazebo_ros" type="$(arg script_type)" respawn="$(arg respawn_gazebo)" output="screen"
-          args="$(arg command_arg1) $(arg command_arg2) $(arg command_arg3) -e $(arg physics) $(arg extra_gazebo_args) $(arg world_name)">
-          <remap from="joint_states" to="unstamped/joint_states"/>
-     </node>
+          args="$(arg command_arg1) $(arg command_arg2) $(arg command_arg3) -e $(arg physics) $(arg extra_gazebo_args) $(find prius_sim)/worlds/worcester.world">
+          <remap from="joint_states" to="/unstamped/joint_states"/>
+    </node>
 
     <!-- start gazebo client -->
     <group if="$(arg gui)">
       <node name="gazebo_gui" pkg="gazebo_ros" type="gzclient" respawn="false" output="screen"/>
     </group>
 
-  <node pkg="robot_state_publisher" type="robot_state_publisher" name="robot_state_publisher">
-    <param name="publish_frequency" value="1000"/>
-  </node>
-
   <node name="spawn_urdf" pkg="gazebo_ros" type="spawn_model" args="-param robot_description -urdf -x 0 -y -0 -z 0.5 -model prius"/>
 
   <!--CONTROL/MP NODES-->
   <node pkg="prius_controller" type="prius_controller_node" name="prius_controller" output="screen"/>
-  <node name="rqt_gui" pkg="rqt_gui" type="rqt_gui"/>
 
   <!--FAKE LOCALIZATION-->
   <node pkg="fake_localization" type="fake_localization_node" name="fake_localization_node" output="screen"/>
 
   <!--RVIZ-->
-  <node name="rviz" pkg="rviz" type="rviz" output="screen"/>
+  <node name="rviz" pkg="rviz" type="rviz" args="-d $(arg rvizconfig)" required="true" />
 
 
 </launch>
