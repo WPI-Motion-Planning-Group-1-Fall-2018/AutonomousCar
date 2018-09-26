@@ -131,7 +131,7 @@ void PriusController::calculatePedals()
     set_point = m_mp_control.speed;
   }
 
-  double error = m_mp_control.speed - set_point;
+  double error = set_point - speed;
 
   m_int_p += error * dt_p.toSec();
 
