@@ -58,8 +58,18 @@
 
   <node name="spawn_urdf" pkg="gazebo_ros" type="spawn_model" args="-param robot_description -urdf -x 0 -y -0 -z 0.5 -model prius"/>
 
-  <!--CONTROL/MP NODES-->
+  <!--CONTROL NODE-->
   <node pkg="prius_controller" type="prius_controller_node" name="prius_controller" output="screen"/>
+
+  <!--LOCAL COSTMAP-->
+  <node pkg="local_costmap" type="local_costmap_node" name="local_costmap_node" output="screen">
+    <param name="local_costmap_res" value="0.15"/>
+    <param name="local_costmap_height" value="75"/>
+    <param name="local_costmap_width" value="75"/>
+    <param name="z_ground_buffer" value="0.075"/>
+    <param name="obstacle_range" value="2"/>
+    <param name="max_inflation_radius" value="5"/>
+  </node>
 
   <!--FAKE LOCALIZATION-->
   <node pkg="fake_localization" type="fake_localization_node" name="fake_localization_node" output="screen"/>

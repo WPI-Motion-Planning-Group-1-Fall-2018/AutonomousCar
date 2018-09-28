@@ -73,7 +73,7 @@ void PriusController::calculateSteering()
 
   double derivative = (error - m_prev_err_s) / dt_s.toSec();
 
-  m_control.steer = m_kp_s * error + m_ki_s * m_int_s + m_kd_s * derivative;
+  m_control.steer = m_kp_s * error + m_ki_s * m_int_s - m_kd_s * derivative;
 
   if(m_control.steer > 1)
   {
@@ -137,7 +137,7 @@ void PriusController::calculatePedals()
 
   double derivative = (error - m_prev_err_p) / dt_p.toSec();
 
-  double control_speed = m_kp_p * error + m_ki_p * m_int_p + m_kd_p *  derivative;
+  double control_speed = m_kp_p * error + m_ki_p * m_int_p - m_kd_p *  derivative;
 
   if(control_speed > 1)
   {
