@@ -34,7 +34,14 @@ private:
     std::pair<int, int> getRandomPoint();
     std::pair<int, int> calcNearestNode(const std::pair<int, int> &pt);
     std::pair<int, int> interpolatePoint(const std::pair<int, int> &rand_pt, const std::pair<int, int> &nearest_node);
+    std::vector<std::pair<int, int>> calcPointsBetween(const std::pair<int, int> &pt1, const std::pair<int, int> &pt2);
+    bool checkNewPointsForCollision(const std::vector<std::pair<int, int>> &points_between);
+    bool checkNewPointsForGoal(const std::vector<std::pair<int, int>> &points_between);
+    std::vector<std::pair<int, int>> calcPointsToGoal(const std::vector<std::pair<int, int>> & points_between);
     bool checkForGoal(const std::pair<int, int> &pt);
+    void markVisitedPoints(const std::vector<std::pair<int, int>> &points);
+    void addPointsToTree(const std::vector<std::pair<int, int>> &points, std::pair<int, int> nearest_node);
+    int calcTreeBranch(const std::pair<int, int> &pt);
     void markVisited(const std::pair<int, int> &pt);
     void setupCollision(ros::NodeHandle &pnh);
     double calcCollisionDistance(const std::string &link_1, const std::string &link_2);

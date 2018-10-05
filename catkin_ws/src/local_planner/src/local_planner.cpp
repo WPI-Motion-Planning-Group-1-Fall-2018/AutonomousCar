@@ -23,15 +23,27 @@ void LocalPlanner::planPath()
     clearVisited();
     clearTree();
     markGoalPoint();
-    std::pair<int, int> current_point = std::make_pair(m_car_center_x, m_car_center_y);
     while(true)
     {
         std::pair<int, int> rand_pt = getRandomPoint();
-        std::pair<int, int> nearest_node;
-        std::pair<int, int> pt = interpolatePoint(rand_pt, nearest_node);
-        checkForGoal(pt);
+        std::pair<int, int> nearest_node = calcNearestNode(rand_pt);
+        std::pair<int, int> new_node_pt = interpolatePoint(rand_pt, nearest_node);
+        if(m_c_space_visited[new_node_pt.first][new_node_pt.second] != 1)
+        {
+            std::vector<std::pair<int, int>> node_pts_between = calcPointsBetween(new_node_pt, nearest_node);
+            if(!checkNewPointsForCollision(node_pts_between))
+            {
 
-        checkCollision(current_point);
+                if(checkNewPointsForGoal(node_pts_between))
+                {
+                    std::vector<std::pair<int, int>> pts_to_goal = calcPointsToGoal(node_pts_between);
+                    addPointsToTree(pts_to_goal, nearest_node);
+                    break;
+                }
+                markVisitedPoints(node_pts_between);
+                addPointsToTree(node_pts_between, nearest_node);
+            }
+        }
     }
 }
 
@@ -52,6 +64,10 @@ void LocalPlanner::clearTree()
 {
     m_tree.clear();
     m_tree = {};
+    std::pair<int, int> current_point = std::make_pair(m_car_center_x, m_car_center_y);
+    std::vector<std::pair<int, int>> first_branch = {};
+    first_branch.push_back(current_point);
+    m_tree.push_back(first_branch);
 }
 
 void LocalPlanner::markGoalPoint()
@@ -92,10 +108,65 @@ std::pair<int, int> LocalPlanner::interpolatePoint(const std::pair<int, int> &ra
     double d_x = rand_pt.first - nearest_node.first;
     double d_y = rand_pt.second - nearest_node.second;
     double angle_to_center = atan2(d_y, d_x);
-    int x = m_max_branch_length * cos(angle_to_center);
-    int y = m_max_branch_length * sin(angle_to_center);
+    int x = nearest_node.first + m_max_branch_length * cos(angle_to_center);
+    int y = nearest_node.second + m_max_branch_length * sin(angle_to_center);
     std::pair<int, int> pt = std::make_pair(x, y);
     return pt;
+}
+
+std::vector<std::pair<int, int>> LocalPlanner::calcPointsBetween(const std::pair<int, int> &pt1, const std::pair<int, int> &pt2)
+{
+    std::vector<std::pair<int, int>> points_between = {};
+    double d_x = pt1.first - pt2.first;
+    double d_y = pt1.second - pt2.second;
+    double dist_between = sqrt(pow(d_x, 2) + pow(d_y, 2));
+    int num_pts_between = dist_between / m_local_costmap_res;
+    double angle_between = atan2(d_y, d_x);
+    for(int i = 0; i < num_pts_between; i++)
+    {
+        int x = pt1.first + i / num_pts_between * dist_between * cos(angle_between);
+        int y = pt1.second + i / num_pts_between * dist_between * sin(angle_between);
+        std::pair<int, int> pt = std::make_pair(x, y);
+        points_between.push_back(pt);
+    }
+    return points_between;
+}
+
+bool LocalPlanner::checkNewPointsForCollision(const std::vector<std::pair<int, int>> &points_between)
+{
+    for(auto pt : points_between)
+    {
+        if(checkCollision(pt))
+        {
+            return true;
+        }
+    }
+    return false;
+}
+
+bool LocalPlanner::checkNewPointsForGoal(const std::vector<std::pair<int, int>> &points_between)
+{
+    for(auto pt : points_between)
+    {
+        if(checkForGoal(pt))
+        {
+            return true;
+        }
+    }
+    return false;
+}
+
+std::vector<std::pair<int, int>> LocalPlanner::calcPointsToGoal(const std::vector<std::pair<int, int> > &points_between)
+{
+    std::vector<std::pair<int, int>> pts_to_goal = {};
+    for(auto pt : points_between)
+    {
+        pts_to_goal.push_back(pt);
+        if(checkForGoal(pt))
+        {
+            return pts_to_goal;
+        }
+    }
 }
 
 bool LocalPlanner::checkForGoal(const std::pair<int, int> &pt)
@@ -105,6 +176,39 @@ bool LocalPlanner::checkForGoal(const std::pair<int, int> &pt)
         return true;
     }
     return false;
+}
+
+void LocalPlanner::markVisitedPoints(const std::vector<std::pair<int, int>> &points)
+{
+    for(auto pt : points)
+    {
+        markVisited(pt);
+    }
+}
+
+void LocalPlanner::addPointsToTree(const std::vector<std::pair<int, int> > &points, std::pair<int, int> nearest_node)
+{
+    int branch = calcTreeBranch(nearest_node);
+    for(auto pt : points)
+    {
+        m_tree[branch].push_back(pt);
+    }
+}
+
+int LocalPlanner::calcTreeBranch(const std::pair<int, int> &pt)
+{
+    int count = 0;
+    for(auto stem : m_tree)
+    {
+        for(auto branch : stem)
+        {
+            if(branch.first == pt.first && branch.second == pt.second)
+            {
+                return count;
+            }
+        }
+        count++;
+    }
 }
 
 void LocalPlanner::markVisited(const std::pair<int, int> &pt)
