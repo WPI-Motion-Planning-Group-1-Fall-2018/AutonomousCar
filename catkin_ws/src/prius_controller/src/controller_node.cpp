@@ -3,26 +3,26 @@
 
 int main(int argc, char **argv)
 {
-  ros::init(argc, argv, "controller_node");
+    ros::init(argc, argv, "controller_node");
 
-  ros::NodeHandle nh;
+    ros::NodeHandle nh;
 
-  ros::NodeHandle pnh("~");
+    ros::NodeHandle pnh("~");
 
-  Prius::PriusController cont(nh, pnh);
+    Prius::PriusController cont(nh, pnh);
 
-  ros::Rate rate(100);
+    ros::Rate rate(100);
 
-  while(ros::ok)
-  {
-    ros::spinOnce();
+    while(ros::ok)
+    {
+        ros::spinOnce();
 
-    cont.calculateAndPublishControls();
+        cont.calculateAndPublishControls();
 
-    rate.sleep();
+        rate.sleep();
 
-  }
+    }
 
-  return 0;
+    return 0;
 
 }

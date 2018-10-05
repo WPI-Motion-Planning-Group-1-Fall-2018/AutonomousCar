@@ -3,19 +3,19 @@
 
 int main(int argc, char **argv)
 {
-  ros::init(argc, argv, "local_costmap_node");
+    ros::init(argc, argv, "local_costmap_node");
 
-  ros::NodeHandle nh;
+    ros::NodeHandle nh;
 
-  ros::NodeHandle pnh("~");
+    ros::NodeHandle pnh("~");
 
-  Prius::LocalCostmap cmap(nh, pnh);
+    Prius::LocalCostmap cmap(nh, pnh);
 
-  while(ros::ok)
-  {
-    ros::spin();
-  }
+    while(ros::ok)
+    {
+        ros::spin();
+    }
 
-  return 0;
+    return 0;
 
 }

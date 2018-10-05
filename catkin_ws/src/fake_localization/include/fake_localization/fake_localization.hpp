@@ -13,25 +13,21 @@ class FakeLocalization{
 
 public:
 
-  FakeLocalization(ros::NodeHandle &nh);
-
-  ~FakeLocalization();
+    FakeLocalization(ros::NodeHandle &nh);
+    ~FakeLocalization();
 
 private:
 
-  void odometryCallback(const nav_msgs::Odometry::ConstPtr &msg);
+    void odometryCallback(const nav_msgs::Odometry::ConstPtr &msg);
+    void jointStateCallback(const sensor_msgs::JointState::ConstPtr &msg);
 
-  void jointStateCallback(const sensor_msgs::JointState::ConstPtr &msg);
+    ros::Subscriber odom_sub;
+    ros::Subscriber joint_sub;
 
-  ros::Subscriber odom_sub;
+    ros::Publisher joint_pub;
 
-  ros::Subscriber joint_sub;
-
-  ros::Publisher joint_pub;
-
-  tf::TransformBroadcaster br;
-
-  tf::TransformListener listener;
+    tf::TransformBroadcaster br;
+    tf::TransformListener listener;
 
 };
 

@@ -71,6 +71,12 @@
     <param name="max_inflation_radius" value="5"/>
   </node>
 
+  <!--LOCAL PLANNER-->
+  <node pkg="local_planner" type="local_planner_node" name="local_planner_node" output="screen">
+    <param name="collision_buffer_distance" value="0.5"/>
+    <param name="max_branch_length" value="0.1"/>
+  </node>
+
   <!--FAKE LOCALIZATION-->
   <node pkg="fake_localization" type="fake_localization_node" name="fake_localization_node" output="screen"/>
 

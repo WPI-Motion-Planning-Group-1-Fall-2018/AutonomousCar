@@ -4,17 +4,17 @@
 
 int main(int argc, char **argv)
 {
-  ros::init(argc, argv, "fake_localization_node");
+    ros::init(argc, argv, "fake_localization_node");
 
-  ros::NodeHandle nh;
+    ros::NodeHandle nh;
 
-  Prius::FakeLocalization loc(nh);
+    Prius::FakeLocalization loc(nh);
 
-  while(ros::ok)
-  {
-    ros::spin();
-  }
+    while(ros::ok)
+    {
+        ros::spin();
+    }
 
-  return 0;
+    return 0;
 
 }
