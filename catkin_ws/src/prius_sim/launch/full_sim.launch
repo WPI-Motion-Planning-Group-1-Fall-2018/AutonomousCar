@@ -63,7 +63,7 @@
 
   <!--LOCAL COSTMAP-->
   <node pkg="local_costmap" type="local_costmap_node" name="local_costmap_node" output="screen">
-    <param name="local_costmap_res" value="0.15"/>
+    <param name="local_costmap_res" value="1"/>
     <param name="local_costmap_height" value="75"/>
     <param name="local_costmap_width" value="75"/>
     <param name="z_ground_buffer" value="0.075"/>
@@ -74,7 +74,8 @@
   <!--LOCAL PLANNER-->
   <node pkg="local_planner" type="local_planner_node" name="local_planner_node" output="screen">
     <param name="collision_buffer_distance" value="0.5"/>
-    <param name="max_branch_length" value="0.1"/>
+    <param name="max_branch_length" value="1.5"/>
+    <param name="max_yaw_diff" value="0.2"/>
   </node>
 
   <!--FAKE LOCALIZATION-->
