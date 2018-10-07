@@ -8,6 +8,7 @@ add_compile_options(-std=c++11)
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
 ## is used, also find other catkin packages
 find_package(catkin REQUIRED COMPONENTS
+  gazebo_msgs
   geometry_msgs
   nav_msgs
   prius_msgs
@@ -110,7 +111,7 @@ catkin_package(
   INCLUDE_DIRS include
   include/local_planner
 #  LIBRARIES local_planner
-  CATKIN_DEPENDS geometry_msgs nav_msgs prius_msgs roscpp sensor_msgs tf urdf
+  CATKIN_DEPENDS gazebo_msgs geometry_msgs nav_msgs prius_msgs roscpp sensor_msgs tf urdf
 #  DEPENDS system_lib
 )
 
