@@ -27,6 +27,7 @@ private:
     void gazeboStatesCallback(const gazebo_msgs::ModelStates::ConstPtr &msg);
 
     double calculateYawRate();
+    void getCurrentCommandIterator();
     double calculateSpeed();
     void calculateControls();
     void calculateSteering();
@@ -52,6 +53,15 @@ private:
     gazebo_msgs::ModelState m_prius_state;
 
 
+    //keep track of stuff and things
+    double m_yaw_rate;
+    double m_speed;
+    int m_control_it = 0;
+    ros::Time m_current_time;
+    ros::Time m_previous_time = ros::Time::now();
+    ros::Duration m_d_time;
+
+
     //steering PID stuff
     ros::Time m_previous_time_s = ros::Time::now();
     ros::Duration dt_s;
@@ -62,7 +72,6 @@ private:
     double m_kd_s;
 
     //speed PID stuff
-
     ros::Time m_previous_time_p = ros::Time::now();
     ros::Duration dt_p;
     double prev_speed = 0;
