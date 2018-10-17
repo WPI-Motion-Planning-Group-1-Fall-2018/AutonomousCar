@@ -4,15 +4,16 @@ namespace Prius {
 
 PriusController::PriusController(ros::NodeHandle &nh, ros::NodeHandle &pnh)
 {
-    ROS_INFO_STREAM("Subscribing to /mp");
-    motion_planning_sub = nh.subscribe<prius_msgs::MotionPlanning>("/mp", 100, &PriusController::motionPlanningCallback, this);
-    ROS_INFO_STREAM("Subscribing to /gazebo/model_states");
+    motion_planning_sub = nh.subscribe<prius_msgs::MotionPlanning>("/mp", 100, &PriusController::motionPlanningCallback, this);    
     gazebo_state_sub = nh.subscribe<gazebo_msgs::ModelStates>("/gazebo/model_states", 100, &PriusController::gazeboStatesCallback, this);
-    ROS_INFO_STREAM("Publishing to /prius/control");
     control_pub = pnh.advertise<prius_msgs::Control>("/prius/control", 100);
-    ROS_INFO_STREAM("Setting Up Dynamic Reconfigure Server");
     f = boost::bind(&PriusController::dynamicReconfigureCallback, this, _1, _2);
     server.setCallback(f);
+    ros::Duration d(.1);
+    while(motion_planning_sub.getNumPublishers() < 1)
+    {
+        d.sleep();
+    }
 }
 
 PriusController::~PriusController()
