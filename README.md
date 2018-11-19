@@ -3,6 +3,7 @@ Autonomous vehicle motion planning implementation/simulation
 
 
 modified https://github.com/osrf/car_demo with motion planning implementation
+uses https://github.com/osmcode/libosmium for osm parsing
 
 
 
