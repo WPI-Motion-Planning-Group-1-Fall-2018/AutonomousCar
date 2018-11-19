@@ -3,13 +3,10 @@ Autonomous vehicle motion planning implementation/simulation
 
 
 modified https://github.com/osrf/car_demo with motion planning implementation
-uses https://github.com/osmcode/libosmium for osm parsing
-
-
 
 Required Dependencies:
 
-gazebo 8, ros kinetic libosmscout
+gazebo 8, ros kinetic
 
 uninstall gazebo 7:
 sudo apt-remove gazebo7* ros-kinetic-gazebo*
