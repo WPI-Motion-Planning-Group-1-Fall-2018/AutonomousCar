@@ -27,76 +27,94 @@ void LocalPlanner::planPath()
     clearTree();
     markGoalPoint();
     publishGoal();
-    point current_point = std::make_pair(m_car_center_x, m_car_center_y);
-    graph_node node = std::make_pair(current_point, current_point);
-    m_tree_open.insert(std::make_pair(0, node));
+    point current_point = std::make_pair(0, 0);
+    double heading = 0;
+    double velocity = sqrt(pow(prius_velocity.linear.x, 2) + pow(prius_velocity.linear.y, 2) + pow(prius_velocity.linear.z, 2));
+    GraphNode current_node = makeNode(current_point, current_point, heading, velocity);
+    m_tree_open.insert(std::make_pair(calcH(current_point, current_node), current_node));
+    ros::Time start_time = ros::Time::now();
+    ros::Duration duration;
+    int count = 0;
     while(true)
     {
-        current_point = m_tree_open.begin()->second.first;        
-        if(checkForGoal(current_point))
+        duration = ros::Time::now() - start_time;
+        if(duration.toSec() > 30)
         {
+            ROS_ERROR_STREAM("path plan time exceeded, attempting to replan");
+            break;
+        }
+        current_node = m_tree_open.begin()->second;
+        current_point = current_node.child_point;
+        if(checkForGoal(current_node))
+        {
+            //ROS_INFO_STREAM("path found!");
+            m_goal_pt = std::make_tuple(current_point.first, current_point.second, current_node.velocity);
             calcPathMsg();
             break;
-        }       
-        std::vector<point> neighbors = getNeighbors(current_point);
-        for(auto pt : neighbors)
+        }
+        std::vector<GraphNode> new_nodes = getNeighbors(current_point, current_node);
+        for(auto node : new_nodes)
         {
-            markVisited(pt);
-            node = std::make_pair(pt, current_point);
-            double cost = calculateCost(pt, node);
-            bool lower_open_cost = false;
-            bool lower_closed_cost = false;
+            current_point = node.child_point;
             bool in_open_list = false;
             bool in_closed_list = false;
+            double g = calcG(current_node);
+            double h = calcH(current_point, current_node);
+            double successor_current_cost = g + h;
             for(list::iterator it = m_tree_open.begin(); it != m_tree_open.end(); it++)
             {
-                if(pt == it->second.first)
+                if(checkForEquality(it->second, node))
                 {
+                    if(g <= successor_current_cost)
                     in_open_list = true;
-                    if(cost <= it->first)
-                    {
-                        lower_open_cost = true;
-                        break;
-                    }
-                }
-                if(lower_open_cost)
-                {
                     break;
                 }
+            }
+            if(in_open_list)
+            {
+                continue;
             }
             if(!in_open_list)
             {
                 for(list::iterator it = m_tree_closed.begin(); it != m_tree_closed.end(); it++)
                 {
-                    if(pt == it->second.first)
-                    {
+                    if(checkForEquality(it->second, node))
+                    {                      
                         in_closed_list = true;
-                        if(cost <= it->first)
+                        if(g <= successor_current_cost)
                         {
-                            lower_closed_cost = true;
-                            openNode(pt, node);
-                            m_tree_closed.erase(it);
                             break;
                         }
-                    }
-                    if(lower_closed_cost)
-                    {
+                        openNode(current_point, node);
+                        m_tree_closed.erase(it);
                         break;
                     }
                 }
+            }
+            if(in_closed_list)
+            {
+                continue;
             }
             if(!in_open_list && !in_closed_list)
             {
                 openNode(current_point, node);
             }
+            point visited = calcCSpaceCoords(current_point);
+            markVisited(visited);
+        }
+        count++;
+        if(count == 10)
+        {
+            calcOccGrid();
+            count = 0;
         }
         closeNode();
     }
 }
 
-void LocalPlanner::openNode(const point &current_point, const graph_node &node)
+void LocalPlanner::openNode(const point &current_point, const GraphNode &node)
 {
-    double cost = calculateCost(current_point, node);
+    double cost = calcG(node) + calcH(current_point, node);
     m_tree_open.insert(std::make_pair(cost, node));
 }
 
@@ -106,49 +124,185 @@ void LocalPlanner::closeNode()
     m_tree_open.erase(m_tree_open.begin());
 }
 
-double LocalPlanner::calculateCost(const point &pt, const graph_node &node)
+GraphNode LocalPlanner::makeNode(const point &child_pt, const point &parent_point, const double &heading, const double &velocity)
 {
-    return m_tree_open.begin()->first + sqrt(pow(pt.first - node.first.first, 2) + pow(pt.second - node.first.second, 2) * m_local_costmap_res);
+    GraphNode node;
+    node.child_point = child_pt;
+    node.parent_point = parent_point;
+    node.heading = heading;
+    node.velocity = velocity;
+    return node;
 }
 
-std::vector<point> LocalPlanner::getNeighbors(const point &pt)
+bool LocalPlanner::checkForEquality(const GraphNode &map_node, const GraphNode &current_node)
 {
-    std::vector<point> possible_neighbors;
-    std::vector<point> neighbors;
-    point new_pt = std::make_pair(pt.first + 1, pt.second);
-    new_pt = std::make_pair(pt.first - 1, pt.second);
-    possible_neighbors.push_back(new_pt);
-    new_pt = std::make_pair(pt.first, pt.second + 1);
-    possible_neighbors.push_back(new_pt);
-    new_pt = std::make_pair(pt.first, pt.second - 1);
-    possible_neighbors.push_back(new_pt);
-    new_pt = std::make_pair(pt.first + 1, pt.second + 1);
-    possible_neighbors.push_back(new_pt);
-    new_pt = std::make_pair(pt.first + 1, pt.second - 1);
-    possible_neighbors.push_back(new_pt);
-    new_pt = std::make_pair(pt.first - 1, pt.second + 1);
-    possible_neighbors.push_back(new_pt);
-    new_pt = std::make_pair(pt.first - 1, pt.second - 1);
-    possible_neighbors.push_back(new_pt);
-    for(auto possible_pt : possible_neighbors)
+    point map_pt = map_node.child_point;
+    point current_pt = current_node.child_point;
+    if(abs(map_pt.first - current_pt.first) < m_search_res && abs(map_pt.second - current_pt.second) < m_search_res)
     {
-        if(checkBounds(possible_pt) && !checkCollision(possible_pt))
+        return true;
+    }
+    return false;
+}
+
+double LocalPlanner::calcH(const point &pt, const GraphNode &node)
+{
+   double speed = node.velocity;
+   if(speed == 0)
+   {
+       speed = 0.01;
+   }
+   double goal_x = local_nav.x;
+   double goal_y = local_nav.y;
+   double max_dist = sqrt(pow(goal_x, 2) + pow(goal_y, 2));
+   double dist_to_goal = sqrt(pow(pt.first - std::get<0>(m_goal_pt), 2) + pow(pt.second - std::get<1>(m_goal_pt), 2));
+   double dist_heuristic = abs(dist_to_goal / max_dist) * 100;
+   double yaw_to_goal = atan2(goal_y - pt.second, goal_x - pt.first);
+   double yaw_heuristic = abs(node.heading - yaw_to_goal) / (2 * M_PI) * 1;
+   double costmap_value = abs(getCSpaceValue(pt));
+   double cost = abs((dist_heuristic + yaw_heuristic + costmap_value) / pow(speed, 2));
+   return cost;
+}
+
+double LocalPlanner::calcG(const GraphNode &node)
+{
+    auto current_point = node.child_point;
+    auto parent_point = node.parent_point;
+    double cost = 0;
+    int count = 0;
+    while(current_point != point(0, 0))
+    {
+        double dx = current_point.first - parent_point.first;
+        double dy = current_point.second - parent_point.second;
+        double dist = sqrt(pow(dx, 2) + pow(dy, 2));
+        cost += dist;
+        count++;
+        if(count == 1)
         {
-            neighbors.push_back(possible_pt);
+            current_point = parent_point;
+        }
+        for(list::iterator it = m_tree_open.begin(); it != m_tree_open.end(); it++)
+        {
+            if(it->second.child_point == current_point)
+            {
+                current_point = it->second.parent_point;
+            }
+        }
+        for(list::iterator it = m_tree_closed.begin(); it != m_tree_closed.end(); it++)
+        {
+            if(it->second.child_point == current_point)
+            {
+                current_point = it->second.parent_point;
+            }
         }
     }
-    return neighbors;
+    return cost;
 }
 
-
-
-bool LocalPlanner::checkBounds(const point &pt)
+std::vector<GraphNode> LocalPlanner::getNeighbors(const point &pt, const GraphNode &node)
 {
-    if(pt.first > m_local_costmap_width || pt.first < 0 || pt.second > m_local_costmap_height || pt.second < 0)
+    calcTimeStepMs(node);
+    calcVelocityRes(node);
+    calcYawRes(node);
+    calcHeadingDiff(node);
+    calcSearchRes(node);
+    std::vector<double> possible_velocities = calcPossibleVelocities(node);
+    std::vector<double> possible_yaws = calcPossibleYaws(node);
+    std::vector<GraphNode> new_nodes;
+    for(auto velocity : possible_velocities)
     {
-        return false;
+        for(auto yaw : possible_yaws)
+        {
+            double x = pt.first + (velocity * m_time_step_ms / 1000) * cos(yaw);
+            double y = pt.second + (velocity * m_time_step_ms / 1000) * sin(yaw);
+            std::pair<double, double> new_pt = std::make_pair(x, y);
+            if(!checkCollision(new_pt, yaw))
+            {
+                GraphNode new_node = makeNode(new_pt, pt, yaw, velocity);
+                new_nodes.push_back(new_node);
+            }
+        }
     }
-    return true;
+    return new_nodes;
+}
+
+void LocalPlanner::calcTimeStepMs(const GraphNode &node)
+{
+    double velocity = node.velocity;
+    double velocity_frac = velocity / m_max_velocity;
+    double time_step_range = m_max_time_step_ms - m_min_time_step_ms;
+    m_time_step_ms = m_max_time_step_ms - velocity_frac * time_step_range;
+}
+
+void LocalPlanner::calcVelocityRes(const GraphNode &node)
+{
+    double velocity = node.velocity;
+    double velocity_frac = velocity / m_max_velocity;
+    double velocity_step_range = m_max_velocity_res - m_min_velocity_res;
+    m_velocity_res = m_min_velocity_res + velocity_frac * velocity_step_range;
+}
+
+void LocalPlanner::calcYawRes(const GraphNode &node)
+{
+    double velocity = node.velocity;
+    double velocity_frac = velocity / m_max_velocity;
+    double heading_step_range = m_max_heading_res - m_min_heading_res;
+    m_heading_res = m_min_heading_res + velocity_frac * heading_step_range;
+}
+
+void LocalPlanner::calcHeadingDiff(const GraphNode &node)
+{
+    double velocity = node.velocity;
+    double velocity_frac = velocity / m_max_velocity;
+    double heading_diff_range = m_max_heading_diff - m_min_heading_diff;
+    m_heading_diff = m_min_heading_diff + velocity_frac * heading_diff_range;
+}
+
+void LocalPlanner::calcSearchRes(const GraphNode &node)
+{
+    double velocity = node.velocity;
+    double velocity_frac = velocity / m_max_velocity;
+    double search_res_step_range = m_max_search_res - m_min_search_res;
+    m_search_res = m_min_search_res + velocity_frac * search_res_step_range;
+}
+
+std::vector<double> LocalPlanner::calcPossibleVelocities(const GraphNode &node)
+{
+    std::vector<double> possible_velocities = {};
+    double max_accel = local_nav.max_accel;
+    double max_speed = local_nav.max_speed;
+    double current_speed = node.velocity;
+    double time_step = m_time_step_ms / 1000;    
+    double max_possible_speed = current_speed + max_accel * time_step;
+    double min_possible_speed = current_speed - max_accel * time_step;
+    double possible_speed_range = max_possible_speed - min_possible_speed;
+    int num_possible_speeds = possible_speed_range / m_velocity_res;
+    for(int i = 0; i < num_possible_speeds; i++)
+    {
+        double velocity = min_possible_speed + i * m_velocity_res;
+        if(velocity > max_speed || velocity < 0)
+        {
+            continue;
+        }
+        possible_velocities.push_back(velocity);
+    }
+    return possible_velocities;
+}
+
+std::vector<double> LocalPlanner::calcPossibleYaws(const GraphNode &node)
+{
+    std::vector<double> possible_yaws = {};
+    double current_yaw = node.heading;
+    double max_yaw = current_yaw + m_heading_diff;
+    double min_yaw = current_yaw - m_heading_diff;
+    double yaw_range = max_yaw - min_yaw;
+    double num_possible_yaws = yaw_range / m_heading_res;
+    for(int i = 0; i < num_possible_yaws; i++)
+    {
+        double yaw = min_yaw + i * m_heading_res;
+        possible_yaws.push_back(yaw);
+    }
+    return possible_yaws;
 }
 
 int LocalPlanner::getCSpaceValue(const point &pt)
@@ -186,14 +340,19 @@ void LocalPlanner::clearVisited()
 
 void LocalPlanner::markGoalPoint()
 {
-    m_goal_pt = std::make_pair(int(m_local_costmap_width - 1 -  m_local_costmap_width / 3), int(m_local_costmap_height - m_local_costmap_height / 3));
-    m_c_space_visited[m_goal_pt.first][m_goal_pt.second] = 100;
+    m_goal_pt = std::make_tuple(local_nav.x, local_nav.y, local_nav.speed);
 }
 
 
-bool LocalPlanner::checkForGoal(const point &pt)
+bool LocalPlanner::checkForGoal(const GraphNode &node)
 {
-    if(m_c_space_visited[pt.first][pt.second] == 100)
+    double x = node.child_point.first;
+    double y = node.child_point.second;
+    double speed = node.velocity;
+    double goal_x = std::get<0>(m_goal_pt);
+    double goal_y = std::get<1>(m_goal_pt);
+    double goal_speed = std::get<2>(m_goal_pt);
+    if(abs(x - goal_x) <= m_goal_pos_tolerance && abs(y - goal_y) <= m_goal_pos_tolerance && abs(speed - goal_speed) <= m_goal_speed_tolerance)
     {
         return true;
     }
@@ -203,9 +362,11 @@ bool LocalPlanner::checkForGoal(const point &pt)
 
 void LocalPlanner::markVisited(const point &pt)
 {
-    if(m_c_space_visited[pt.first][pt.second] != 100)
+    int x = m_local_costmap_width / 2 - pt.second;
+    int y = m_local_costmap_height / 2 - pt.first;
+    if(m_c_space_visited[x][y] != 100)
     {
-        m_c_space_visited[pt.first][pt.second] = 1;
+        m_c_space_visited[x][y] = 1;
     }
 }
 
@@ -270,7 +431,7 @@ std::pair<tf::StampedTransform, tf::StampedTransform> LocalPlanner::getTransform
         listener.lookupTransform(link_1, "base_link", ros::Time(0), transform_1);
     }
 
-    catch(tf::TransformException  ex)
+    catch(tf::TransformException ex)
     {
         ROS_ERROR("%s", ex.what());
     }
@@ -280,7 +441,7 @@ std::pair<tf::StampedTransform, tf::StampedTransform> LocalPlanner::getTransform
         listener.lookupTransform(link_2, "base_link", ros::Time(0), transform_2);
     }
 
-    catch(tf::TransformException  ex)
+    catch(tf::TransformException ex)
     {
         ROS_ERROR("%s", ex.what());
     }
@@ -314,9 +475,18 @@ void LocalPlanner::setupCSpace()
 
 void LocalPlanner::getTreeParams(ros::NodeHandle &pnh)
 {
-
-    pnh.getParam("search_radius", m_search_radius);
-    pnh.getParam("max_yaw_diff", m_max_yaw_diff);
+    pnh.getParam("max_time_step_ms", m_max_time_step_ms);
+    pnh.getParam("min_time_step_ms", m_min_time_step_ms);
+    pnh.getParam("max_velocity_res", m_max_velocity_res);
+    pnh.getParam("min_velocity_res", m_min_velocity_res);
+    pnh.getParam("max_heading_res", m_max_heading_res);
+    pnh.getParam("min_heading_res", m_min_heading_res);
+    pnh.getParam("max_heading_diff", m_max_heading_diff);
+    pnh.getParam("min_heading_diff", m_min_heading_diff);
+    pnh.getParam("goal_pos_tolerance", m_goal_pos_tolerance);
+    pnh.getParam("goal_speed_tolerance", m_goal_speed_tolerance);
+    pnh.getParam("max_search_res", m_max_search_res);
+    pnh.getParam("min_search_res", m_min_search_res);
 }
 
 void LocalPlanner::mapCostmapToCSpace(const nav_msgs::OccupancyGrid::ConstPtr &local_costmap)
@@ -337,9 +507,9 @@ int LocalPlanner::calcGridLocation(const double &x, const double &y)
     return location;
 }
 
-bool LocalPlanner::checkCollision(const point &pt)
+bool LocalPlanner::checkCollision(const point &pt, const double &yaw)
 {
-    calcCollisionMatrix(pt);
+    calcCollisionMatrix(pt, yaw);
     for(auto row : m_collision_matrix)
     {
         for(auto pt: row)
@@ -353,11 +523,21 @@ bool LocalPlanner::checkCollision(const point &pt)
     return false;
 }
 
-void LocalPlanner::calcCollisionMatrix(const point &pt)
+point LocalPlanner::calcCSpaceCoords(const point &pt)
+{
+    int x = pt.first / m_local_costmap_res;
+    int y = pt.second / m_local_costmap_res;
+    return point(x, y);
+}
+
+void LocalPlanner::calcCollisionMatrix(const point &pt, const double &yaw)
 {
     m_collision_matrix.clear();
     m_collision_matrix = {};
-    double point_angle = 0;
+    int x = -m_local_costmap_width / 2 + pt.second / m_local_costmap_res;
+    int y = -m_local_costmap_height / 2 + pt.first / m_local_costmap_res;
+    std::pair<int, int> new_pt = std::make_pair(x, y);
+    double point_angle = yaw;
     for(int x = m_min_collision_point_x; x < m_max_collision_point_x ; x++)
     {
         if(x < 0 || x > m_c_space.size() - 1)
@@ -371,8 +551,8 @@ void LocalPlanner::calcCollisionMatrix(const point &pt)
             {
                 continue;
             }
-            int collision_x = (pt.first + x * m_num_x_points) * cos(point_angle);
-            int collision_y = (pt.second + y * m_num_y_points) * sin(point_angle);
+            int collision_x = (new_pt.first + x * m_num_x_points) * cos(point_angle);
+            int collision_y = (new_pt.second + y * m_num_y_points) * sin(point_angle);
             point collision_pt = std::make_pair(collision_x, collision_y);
             m_collision_matrix[x].push_back(collision_pt);
         }
@@ -387,37 +567,37 @@ void LocalPlanner::publishOccGrid(const nav_msgs::OccupancyGrid &grid)
 void LocalPlanner::calcPathMsg()
 {
     std::vector<point> reverse_path;
-    point current_point = m_goal_pt;
+    point current_point = std::make_pair(std::get<0>(m_goal_pt), std::get<1>(m_goal_pt));
     reverse_path.push_back(current_point);
-    while(current_point != std::make_pair(m_car_center_x, m_car_center_y))
+    while(current_point != point(0, 0))
     {
         for(list::iterator it = m_tree_open.begin(); it != m_tree_open.end(); it++)
         {
-            if(it->second.first == current_point)
+            if(it->second.child_point == current_point)
             {
-                current_point = it->second.second;
+                current_point = it->second.parent_point;
                 reverse_path.push_back(current_point);
             }
         }
         for(list::iterator it = m_tree_closed.begin(); it != m_tree_closed.end(); it++)
         {
-            if(it->second.first == current_point)
-            {                
-                current_point = it->second.second;
+            if(it->second.child_point == current_point)
+            {
+                current_point = it->second.parent_point;
                 reverse_path.push_back(current_point);
             }
         }
     }
     nav_msgs::Path path;
-    path.header.frame_id = "center_laser_link";
+    path.header.frame_id = "base_link";
     path.header.stamp = ros::Time::now();
     for(int i = reverse_path.size() - 1; i >= 0; i--)
     {
         geometry_msgs::PoseStamped pose;
         pose.header.stamp = ros::Time::now();
-        pose.header.frame_id = "center_laser_link";
-        pose.pose.position.x = reverse_path[i].second * m_local_costmap_res - m_local_costmap_height * m_local_costmap_res / 2;
-        pose.pose.position.y = reverse_path[i].first * m_local_costmap_res - m_local_costmap_width * m_local_costmap_res / 2;
+        pose.header.frame_id = "base_link";
+        pose.pose.position.x = reverse_path[i].first;
+        pose.pose.position.y = reverse_path[i].second;
         path.poses.push_back(pose);
     }
     publishPath(path);
@@ -478,13 +658,11 @@ void LocalPlanner::calcOccGrid()
 void LocalPlanner::publishGoal()
 {
     geometry_msgs::PoseStamped goal;
-    goal.header.frame_id = "center_laser_link";
+    goal.header.frame_id = "base_link";
     goal.header.stamp = ros::Time::now();
-    goal.pose.position.x = (- m_local_costmap_width / 2 + m_goal_pt.second) * m_local_costmap_res;
-    goal.pose.position.y = (-m_local_costmap_height / 2 + m_goal_pt.first) * m_local_costmap_res;
+    goal.pose.position.x = std::get<0>(m_goal_pt);
+    goal.pose.position.y = std::get<1>(m_goal_pt);
     goal_pub.publish(goal);
-
-
 }
 
 

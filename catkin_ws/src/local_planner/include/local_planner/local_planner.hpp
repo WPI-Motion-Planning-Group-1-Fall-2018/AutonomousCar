@@ -5,6 +5,7 @@
 #include <geometry_msgs/PoseStamped.h>
 #include <geometry_msgs/Twist.h>
 #include <geometry_msgs/PoseStamped.h>
+#include <graph_node.hpp>
 #include <nav_msgs/OccupancyGrid.h>
 #include <nav_msgs/Path.h>
 #include <prius_msgs/LocalNav.h>
@@ -14,10 +15,9 @@
 #include <time.h>
 #include <urdf/model.h>
 
-typedef std::pair<int, int> point;
-typedef std::pair<point, point> graph_node;
+typedef std::pair<double, double> point;
 typedef std::vector<std::vector<int>> graph;
-typedef std::multimap<double, graph_node> list;
+typedef std::multimap<double, Prius::GraphNode> list;
 
 namespace Prius {
 
@@ -37,22 +37,33 @@ private:
     //planning stuffss
     void planPath();
     bool checkOpen(const point &old_point, const point &current_point, const std::pair<point, point> &node);
-    bool checkClosed(const point &current_point,const graph_node &node);
-    void openNode(const point &current_point, const graph_node &node);
+    bool checkClosed(const point &current_point,const GraphNode &node);
+    void openNode(const point &current_point, const GraphNode &node);
     void closeNode();
-    double calculateCost(const point &pt, const graph_node &node);
-    std::vector<point> getNeighbors(const point &pt);
-    bool checkBounds(const point &pt);
+    GraphNode makeNode(const point &child_pt, const point &parent_point, const double &heading, const double &velocity);
+    bool checkForEquality(const GraphNode &map_node, const GraphNode &current_node);
+    double calcH(const point &pt, const GraphNode &node);
+    double calcG(const GraphNode &node);
+    double calcW(const point &pt, const GraphNode &node);
+    std::vector<GraphNode> getNeighbors(const point &pt, const GraphNode &node);
+    void calcTimeStepMs(const GraphNode &node);
+    void calcVelocityRes(const GraphNode &node);
+    void calcYawRes(const GraphNode &node);
+    void calcHeadingDiff(const GraphNode &node);
+    void calcSearchRes(const GraphNode &node);
+    std::vector<double> calcPossibleVelocities(const GraphNode &node);
+    std::vector<double> calcPossibleYaws(const GraphNode &node);
     std::vector<point> calcPointsBetween(const point &current_pt, const point &new_pt);
     int getCSpaceValue(const point &pt);
     bool checkVisited(const point &pt);
     void clearTree();
     void clearVisited();
     void markGoalPoint();
-    bool checkForGoal(const point &pt);
+    bool checkForGoal(const GraphNode &node);
     void markVisited(const point &pt);
     int calcGridLocation(const double &x, const double &y);
-    bool checkCollision(const point &pt);
+    point calcCSpaceCoords(const point &pt);
+    bool checkCollision(const point &pt, const double &yaw);
 
     //settin all the stuffs up rel gud
     void setupCollision(ros::NodeHandle &pnh);
@@ -62,7 +73,7 @@ private:
     void setupCSpace();
     void getTreeParams(ros::NodeHandle &pnh);
     void mapCostmapToCSpace(const nav_msgs::OccupancyGrid::ConstPtr &local_costmap);
-    void calcCollisionMatrix(const point &pt);
+    void calcCollisionMatrix(const point &pt, const double &yaw);
 
     //outputssssss
     void calcOccGrid();
@@ -111,15 +122,31 @@ private:
     int m_num_y_points;
 
     //if u dont know what this is idk
-    point m_goal_pt;
+    std::tuple<double, double, double> m_goal_pt;
 
     //c-space stuff and constricting parameters
     double m_local_costmap_res;
     int m_local_costmap_height;
     int m_local_costmap_width;
     double m_collision_buffer_distance;
-    double m_search_radius;
-    double m_max_yaw_diff;
+    double m_time_step_ms;
+    double m_max_time_step_ms;
+    double m_min_time_step_ms;
+    double m_max_velocity = 15;
+    double m_velocity_res;
+    double m_max_velocity_res;
+    double m_min_velocity_res;
+    double m_heading_res;
+    double m_max_heading_res;
+    double m_min_heading_res;
+    double m_heading_diff;
+    double m_max_heading_diff;
+    double m_min_heading_diff;
+    double m_goal_pos_tolerance;
+    double m_goal_speed_tolerance;
+    double m_search_res;
+    double m_max_search_res;
+    double m_min_search_res;
 
 };
 
