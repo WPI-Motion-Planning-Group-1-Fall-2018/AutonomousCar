@@ -61,6 +61,9 @@
   <!--CONTROL NODE-->
   <node pkg="prius_controller" type="prius_controller_node" name="prius_controller" output="screen"/>
 
+  <!--GLOBAL NAVIGATOR-->
+  <node pkg="global_navigator" type="global_path_planner.py" name="global_navigator" output="screen"/>
+
   <!-- GLOBAL COSTMAP-->
   <node pkg="global_costmap" type="global_costmap_node" name="global_costmap_node" output="screen" args="$(find global_costmap)/share/edges.csv">
     <param name="road_width" value="11.1"/>
