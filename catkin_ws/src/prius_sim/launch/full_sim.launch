@@ -56,7 +56,7 @@
       <node name="gazebo_gui" pkg="gazebo_ros" type="gzclient" respawn="false" output="screen"/>
     </group>
 
-  <node name="spawn_urdf" pkg="gazebo_ros" type="spawn_model" args="-param robot_description -urdf -x 0 -y -0 -z 0.5 -model prius"/>
+  <node name="spawn_urdf" pkg="gazebo_ros" type="spawn_model" args="-param robot_description -urdf -x 0 -y 15 -z 0.5 -model prius"/>
 
   <!--CONTROL NODE-->
   <node pkg="prius_controller" type="prius_controller_node" name="prius_controller" output="screen"/>
