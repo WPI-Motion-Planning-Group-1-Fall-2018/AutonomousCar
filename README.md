@@ -8,11 +8,17 @@ modified https://github.com/osrf/car_demo with motion planning implementation
 
 Required Dependencies:
 
-gazebo 8 and ros kinetic
+gazebo 8, ros kinetic libosmscout
 
 uninstall gazebo 7:
 sudo apt-remove gazebo7* ros-kinetic-gazebo*
 sudo apt-get install ros-kinetic-gazebo8*
+git clone https://github.com/Framstag/libosmscout/
+cd libosmscout
+mkdir build
+cd build
+cmake ..
+sudo make install
 
 
 Usage:
