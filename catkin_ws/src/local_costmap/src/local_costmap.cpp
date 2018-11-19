@@ -7,8 +7,8 @@ LocalCostmap::LocalCostmap(ros::NodeHandle &nh, ros::NodeHandle pnh)
     center_laser_sub = nh.subscribe<sensor_msgs::PointCloud>("/prius/center_laser/scan", 100, &LocalCostmap::centerLaserCallback, this);
     right_laser_sub = nh.subscribe<sensor_msgs::LaserScan>("/prius/front_right_laser/scan", 100, &LocalCostmap::rightLaserCallback, this);
     left_laser_sub = nh.subscribe<sensor_msgs::LaserScan>("/prius/front_left_laser/scan", 100, &LocalCostmap::leftLaserCallback, this);
+    global_costmap_sub = nh.subscribe<nav_msgs::OccupancyGrid>("/global_costmap", 1, &LocalCostmap::globalCostmapCallback, this);
     occ_grid_pub = nh.advertise<nav_msgs::OccupancyGrid>("/local_costmap", 100);
-
     double costmap_height_meters;
     double costmap_width_meters;
     pnh.getParam("local_costmap_res", m_local_costmap_res);
@@ -19,7 +19,11 @@ LocalCostmap::LocalCostmap(ros::NodeHandle &nh, ros::NodeHandle pnh)
     pnh.getParam("max_inflation_radius", m_max_inflation_r);
     m_local_costmap_height = costmap_height_meters / m_local_costmap_res;
     m_local_costmap_width = costmap_width_meters / m_local_costmap_res;
-
+    double global_costmap_height, global_costmap_width;
+    pnh.getParam("/global_costmap_node/global_costmap_height", global_costmap_height);
+    pnh.getParam("/global_costmap_node/global_costmap_width", global_costmap_width);
+    m_global_costmap_height = global_costmap_height / m_local_costmap_res;
+    m_global_costmap_width = global_costmap_width / m_local_costmap_res;
     setupCostmap();
 
 }
@@ -37,17 +41,14 @@ void LocalCostmap::setupCostmap()
     {
         continue;
     }
-
     try
     {
         listener.lookupTransform("/base_link", "/center_laser_link", ros::Time(0), transform);
     }
-
-    catch(tf::TransformException  ex)
+    catch(tf::TransformException ex)
     {
         ROS_ERROR("%s", ex.what());
     }
-
     occ_grid.header.frame_id = "base_link";
     occ_grid.info.resolution = m_local_costmap_res;
     occ_grid.info.origin.position.x = -m_local_costmap_width * m_local_costmap_res / 2 + transform.getOrigin().getX();
@@ -63,10 +64,9 @@ void LocalCostmap::setupCostmap()
     inflated_grid.info.height = m_local_costmap_height;
     inflated_grid.info.width = m_local_costmap_width;
     inflated_grid.info.resolution = m_local_costmap_res;
-
     clearMap();
-
 }
+
 
 void LocalCostmap::calcOccGrid()
 {
@@ -76,6 +76,7 @@ void LocalCostmap::calcOccGrid()
     mapPlanarScan(left_scan, "front_left_laser_link");
     mapCenterScan();
     inflateGrid();
+    mapRoadVectors();
 }
 
 void LocalCostmap::mapPlanarScan(const sensor_msgs::LaserScan &scan, const std::string &frame)
@@ -111,7 +112,6 @@ void LocalCostmap::mapPlanarScan(const sensor_msgs::LaserScan &scan, const std::
         {
             double angle = scan.angle_min + i * scan.angle_increment;
             double x, y;
-
             if(frame == "front_right_laser_link")
             {
                 y = -(scan.ranges[i] * cos(angle) * cos(roll) - transform.getOrigin().getX());
@@ -123,7 +123,6 @@ void LocalCostmap::mapPlanarScan(const sensor_msgs::LaserScan &scan, const std::
                 y = scan.ranges[i] * cos(angle) * cos(roll) - transform.getOrigin().getX();
                 x = -(scan.ranges[i] * sin(angle) * cos(roll) - transform.getOrigin().getY());
             }
-
             auto location = calcGridLocation(x, y);
             double max_range =  fabs(transform_z.getOrigin().getZ() / tan(roll));
             double dist_from_laser = scan.ranges[i];
@@ -139,7 +138,6 @@ void LocalCostmap::mapPlanarScan(const sensor_msgs::LaserScan &scan, const std::
                     occ_grid.data[location] = 0;
                 }
             }
-
             double angle_to_base = atan2(y - transform.inverse().getOrigin().getY(), x - transform.inverse().getOrigin().getX());
             double dist_to_base = sqrt(pow(x - transform.inverse().getOrigin().getX(), 2) + pow(y - transform.inverse().getOrigin().getY(), 2));
             int num_pts_to_base = dist_to_base / m_local_costmap_res;
@@ -187,7 +185,6 @@ void LocalCostmap::mapCenterScan()
                 occ_grid.data[location] = 0;
             }
         }
-
         double angle_to_base = atan2(pt.y, pt.x);
         double dist_to_base = sqrt(pow(pt.x, 2) + pow(pt.y, 2));
         int num_pts_to_base = dist_to_base / m_local_costmap_res;
@@ -199,12 +196,62 @@ void LocalCostmap::mapCenterScan()
                 x = pt.x - i * m_local_costmap_res * cos(angle_to_base);
                 y = pt.y - i * m_local_costmap_res * sin(angle_to_base);
                 auto location = calcGridLocation(x, y);
-
                 if(occ_grid.data[location] != 100)
                 {
                     occ_grid.data[location] = 0;
                 }
             }
+        }
+    }
+}
+
+void LocalCostmap::mapRoadVectors()
+{
+    if(global_grid.data.size() < 1)
+    {
+        return;
+    }
+    tf::StampedTransform transform;
+    try
+    {
+        listener.lookupTransform("/map", "/base_link", ros::Time(0), transform);
+    }
+
+    catch(tf::TransformException ex)
+    {
+        ROS_ERROR("%s", ex.what());
+    }    
+    tf::Quaternion q;
+    q.setW(transform.getOrigin().w());
+    q.setX(transform.getOrigin().x());
+    q.setY(transform.getOrigin().y());
+    q.setZ(transform.getOrigin().z());
+    double roll, pitch, yaw;
+    tf::Matrix3x3(q).getRPY(roll, pitch, yaw);
+    double total_x = m_local_costmap_height * m_local_costmap_res;
+    double total_y = m_local_costmap_width * m_local_costmap_res;
+    double min_x = -total_x / 2;
+    double min_y = -total_y / 2;
+    int num_pts_x = m_local_costmap_height * 2;
+    int num_pts_y = m_local_costmap_width * 2;
+
+    for(int i = 0; i < num_pts_x; i++)
+    {
+        for(int j = 0; j < num_pts_y; j++)
+        {
+            double global_x_unrotated = min_x + i / double(num_pts_x) * total_x;
+            double global_y_unrotated = min_y + j / double(num_pts_y) * total_y;
+            tf::Point global_point = transform * tf::Point(global_x_unrotated, global_y_unrotated, 0);
+            double global_x = global_point.x();
+            double global_y = global_point.y();
+            int global_location = calcGlobalGridLocation(point(global_x, global_y));
+            tf::Point local_point = transform.inverse() * tf::Point(global_x, global_y, 0);
+            int local_location = calcGridLocation(local_point.x(), local_point.y());
+            if(occ_grid.data[local_location] > global_grid.data[global_location])
+            {
+                continue;
+            }
+            occ_grid.data[local_location] = global_grid.data[global_location];
         }
     }
 }
@@ -217,14 +264,24 @@ int LocalCostmap::calcGridLocation(const double &x, const double &y)
     return location;
 }
 
-std::pair<double, double> LocalCostmap::calcCartesianCoords(const int &location)
+int LocalCostmap::calcGlobalGridLocation(const point &pt)
+{
+    int x = m_global_costmap_height / 2 - pt.first / m_local_costmap_res;
+    int y = m_global_costmap_width / 2 - pt.second / m_local_costmap_res;
+    int width_pos = m_global_costmap_width - y;
+    int height_pos = m_global_costmap_height - x;
+    int location = height_pos + width_pos * m_global_costmap_height;
+    return location;
+}
+
+point LocalCostmap::calcCartesianCoords(const int &location)
 {
     std::div_t result = std::div(location, m_local_costmap_height);
     int height_pos = result.quot;
     int width_pos = result.rem;
     double x = (width_pos - m_local_costmap_width / 2) * m_local_costmap_res;
     double y = (height_pos - m_local_costmap_height / 2) * m_local_costmap_res;
-    std::pair<double, double> coords = std::make_pair(x, y);
+    point coords = std::make_pair(x, y);
     return coords;
 }
 
@@ -264,7 +321,6 @@ void LocalCostmap::inflateGrid()
                 }
             }
         }
-
         count++;
     }
 
@@ -321,6 +377,11 @@ void LocalCostmap::rightLaserCallback(const sensor_msgs::LaserScan::ConstPtr &ms
 void LocalCostmap::leftLaserCallback(const sensor_msgs::LaserScan::ConstPtr &msg)
 {
     left_scan = *msg;
+}
+
+void LocalCostmap::globalCostmapCallback(const nav_msgs::OccupancyGrid::ConstPtr &msg)
+{
+    global_grid = *msg;
 }
 
 }

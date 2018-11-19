@@ -7,6 +7,7 @@ add_compile_options(-std=c++11)
 ## Find catkin macros and libraries
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
 ## is used, also find other catkin packages
+
 find_package(catkin REQUIRED COMPONENTS
   nav_msgs
   roscpp
@@ -107,9 +108,7 @@ find_package(catkin REQUIRED COMPONENTS
 catkin_package(
   INCLUDE_DIRS include
   include/local_costmap
-#  LIBRARIES local_costmap
   CATKIN_DEPENDS nav_msgs roscpp sensor_msgs std_msgs tf
-#  DEPENDS system_lib
 )
 
 ###########
