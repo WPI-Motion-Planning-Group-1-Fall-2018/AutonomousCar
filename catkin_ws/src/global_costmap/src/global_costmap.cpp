@@ -39,8 +39,8 @@ void GlobalCostmap::readEdges()
                 boost::split(coords, point_, boost::is_any_of(" "));
                 if(coords.size() == 3)
                 {
-                    float x = boost::lexical_cast<float>(coords[0]);
-                    float y = boost::lexical_cast<float>(coords[1]);
+                    float x = boost::lexical_cast<float>(coords[0]) + 5;
+                    float y = boost::lexical_cast<float>(coords[1]) - 5;
                     road_points.push_back(point(x, y));
                 }
             }

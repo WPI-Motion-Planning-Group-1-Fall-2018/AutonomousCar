@@ -10,6 +10,7 @@
 #include <nav_msgs/Path.h>
 #include <prius_msgs/LocalNav.h>
 #include <prius_msgs/MotionPlanning.h>
+#include <queue>
 #include <stdlib.h>
 #include <tf/transform_listener.h>
 #include <time.h>
@@ -17,7 +18,6 @@
 
 typedef std::pair<double, double> point;
 typedef std::vector<std::vector<int>> graph;
-typedef std::multimap<double, Prius::GraphNode> list;
 
 namespace Prius {
 
@@ -36,21 +36,16 @@ private:
 
     //planning stuffss
     void planPath();
+    void initializePlanner();
     bool checkOpen(const point &old_point, const point &current_point, const std::pair<point, point> &node);
     bool checkClosed(const point &current_point,const GraphNode &node);
-    void openNode(const point &current_point, const GraphNode &node);
+    void openNode(const GraphNode &node);
     void closeNode();
     GraphNode makeNode(const point &child_pt, const point &parent_point, const double &heading, const double &velocity);
-    bool checkForEquality(const GraphNode &map_node, const GraphNode &current_node);
-    double calcH(const point &pt, const GraphNode &node);
+    double calcH(const GraphNode &node);
     double calcG(const GraphNode &node);
-    double calcW(const point &pt, const GraphNode &node);
-    std::vector<GraphNode> getNeighbors(const point &pt, const GraphNode &node);
-    void calcTimeStepMs(const GraphNode &node);
-    void calcVelocityRes(const GraphNode &node);
-    void calcYawRes(const GraphNode &node);
-    void calcHeadingDiff(const GraphNode &node);
-    void calcSearchRes(const GraphNode &node);
+    double calcW(const GraphNode &node);
+    std::vector<GraphNode> getNeighbors(const GraphNode &node);
     std::vector<double> calcPossibleVelocities(const GraphNode &node);
     std::vector<double> calcPossibleYaws(const GraphNode &node);
     std::vector<point> calcPointsBetween(const point &current_pt, const point &new_pt);
@@ -59,7 +54,9 @@ private:
     void clearTree();
     void clearVisited();
     void markGoalPoint();
-    bool checkForGoal(const GraphNode &node);
+    std::pair<bool, GraphNode> checkForGoal(const GraphNode &node);
+    GraphNode interpolateToGoalPoint(const GraphNode &node, const point &goal_pt);
+    std::vector<point> interpolatePoints(point start, const point &end);
     void markVisited(const point &pt);
     int calcGridLocation(const double &x, const double &y);
     point calcCSpaceCoords(const point &pt);
@@ -79,7 +76,8 @@ private:
     void calcOccGrid();
     void publishGoal();
     void publishOccGrid(const nav_msgs::OccupancyGrid &grid);
-    void calcPathMsg();
+    void calcPathMsg(const point &goal_pt);
+    void calcMPMessage(const point &goal_pt);
     void publishPath(const nav_msgs::Path &path);
     void constructMPMsg();
     void calcYawRateDuration();
@@ -101,11 +99,20 @@ private:
 
 
     //planning members
+    struct CheaperCost
+    {
+        bool operator()(const GraphNode &n1, const GraphNode &n2) const
+        {
+            return n1.cost > n2.cost;
+        }
+    };
+
+    std::priority_queue<GraphNode, std::vector<GraphNode>, CheaperCost> m_frontier;
+    std::vector<GraphNode> m_tree_open;
+    std::vector<GraphNode> m_tree_closed;
     graph m_c_space = {};
     graph m_c_space_visited = {};
     std::vector<std::vector<point>> m_collision_matrix = {};
-    list m_tree_open;
-    list m_tree_closed;
 
     //collision stuff
     double m_car_length;
@@ -130,23 +137,13 @@ private:
     int m_local_costmap_width;
     double m_collision_buffer_distance;
     double m_time_step_ms;
-    double m_max_time_step_ms;
-    double m_min_time_step_ms;
     double m_max_velocity = 15;
     double m_velocity_res;
-    double m_max_velocity_res;
-    double m_min_velocity_res;
     double m_heading_res;
-    double m_max_heading_res;
-    double m_min_heading_res;
     double m_heading_diff;
-    double m_max_heading_diff;
-    double m_min_heading_diff;
     double m_goal_pos_tolerance;
     double m_goal_speed_tolerance;
     double m_search_res;
-    double m_max_search_res;
-    double m_min_search_res;
 
 };
 

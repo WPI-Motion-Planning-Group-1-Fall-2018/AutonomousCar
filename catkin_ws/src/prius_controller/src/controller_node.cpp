@@ -13,6 +13,13 @@ int main(int argc, char **argv)
 
     ros::Rate rate(100);
 
+    while(!cont.m_received_msg)
+    {
+        ros::spinOnce();
+
+        rate.sleep();
+    }
+
     while(ros::ok)
     {
         ros::spinOnce();

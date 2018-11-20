@@ -18,6 +18,7 @@ public:
     ~PriusController();
 
     void calculateAndPublishControls();
+    bool m_received_msg = false;
 
 private:
 

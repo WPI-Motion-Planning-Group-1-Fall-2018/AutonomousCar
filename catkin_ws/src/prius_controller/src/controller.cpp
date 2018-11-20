@@ -6,14 +6,9 @@ PriusController::PriusController(ros::NodeHandle &nh, ros::NodeHandle &pnh)
 {
     motion_planning_sub = nh.subscribe<prius_msgs::MotionPlanning>("/mp", 100, &PriusController::motionPlanningCallback, this);    
     gazebo_state_sub = nh.subscribe<gazebo_msgs::ModelStates>("/gazebo/model_states", 100, &PriusController::gazeboStatesCallback, this);
-    control_pub = pnh.advertise<prius_msgs::Control>("/prius/control", 100);
+    control_pub = pnh.advertise<prius_msgs::Control>("/prius", 100);
     f = boost::bind(&PriusController::dynamicReconfigureCallback, this, _1, _2);
     server.setCallback(f);
-    ros::Duration d(.1);
-    while(motion_planning_sub.getNumPublishers() < 1)
-    {
-        d.sleep();
-    }
 }
 
 PriusController::~PriusController()
@@ -184,6 +179,7 @@ void PriusController::extractPriusPose()
 
 void PriusController::motionPlanningCallback(const prius_msgs::MotionPlanning::ConstPtr &msg)
 {
+    m_received_msg = true;
     m_mp_control = *msg;
     m_control_it = 0;
     calculateAndPublishControls();

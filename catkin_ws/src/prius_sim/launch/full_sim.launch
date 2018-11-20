@@ -85,18 +85,13 @@
   <!--LOCAL PLANNER-->
   <node pkg="local_planner" type="local_planner_node" name="local_planner_node" output="screen">
     <param name="collision_buffer_distance" value=".5"/>
-    <param name="max_time_step_ms" value = "1000"/>
-    <param name="min_time_step_ms" value = "250"/>
-    <param name="max_velocity_res" value = "0.1"/>
-    <param name="min_velocity_res" value = ".005"/>
-    <param name="max_heading_res" value = "0.1"/>
-    <param name="min_heading_res" value = "0.005"/>
-    <param name="max_heading_diff" value = "2"/>
-    <param name="min_heading_diff" value = "0.05"/>
-    <param name="goal_pos_tolerance" value = "0.5"/>
-    <param name="goal_speed_tolerance" value = "1"/>
-    <param name="max_search_res" value = "0.1"/>
-    <param name="min_search_res" value = "0.01"/>
+    <param name="time_step_ms" value = "250"/>
+    <param name="velocity_res" value = "0.1"/>
+    <param name="heading_res" value = "0.005"/>
+    <param name="heading_diff" value = "0.05"/>
+    <param name="goal_pos_tolerance" value = "0.01"/>
+    <param name="goal_speed_tolerance" value = "0.25"/>
+    <param name="search_res" value = "0.1"/>
   </node>
 
   <!--FAKE LOCALIZATION-->
