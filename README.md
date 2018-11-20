@@ -20,3 +20,5 @@ standard compile with catkin_make in catkin_ws
 source devel/setup.bash
 
 roslaunch prius_sim full_sim.launch
+
+tune the controller PID with rqt reconfigure :) s for steering p for pedal
