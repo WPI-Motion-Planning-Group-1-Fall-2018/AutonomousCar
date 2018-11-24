@@ -658,7 +658,7 @@ void LocalPlanner::calcMPMessage(const point &goal_pt)
             mp_out.yaw_rates.push_back(reverse_mp_out.yaw_rates[i]);
         }
     }
-    //publishMPOutput(mp_out);
+    publishMPOutput(mp_out);
 }
 
 void LocalPlanner::calcOccGrid()
