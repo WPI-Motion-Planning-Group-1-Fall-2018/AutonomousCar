@@ -144,8 +144,9 @@ std::vector<GraphNode> LocalPlanner::getNeighbors(const GraphNode &node)
     {
         for(auto yaw : possible_yaws)
         {
-            double x = node.child_point.first + (velocity * m_time_step_ms / 1000) * cos(yaw);
-            double y = node.child_point.second + (velocity * m_time_step_ms / 1000) * sin(yaw);
+            double average_velocity = (node.velocity + velocity);
+            double x = node.child_point.first + (average_velocity * m_time_step_ms / 1000) * cos(yaw);
+            double y = node.child_point.second + (average_velocity * m_time_step_ms / 1000) * sin(yaw);
             std::pair<double, double> new_pt = std::make_pair(x, y);
             if(!checkCollision(new_pt, yaw))
             {
