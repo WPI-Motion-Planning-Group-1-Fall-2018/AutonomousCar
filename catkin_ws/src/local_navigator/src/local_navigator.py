@@ -7,20 +7,34 @@ from math import sin, cos, pi,tan, atan2
 from geometry_msgs.msg import Twist, PoseStamped
 import numpy as np
 
-
-#define a global
-pose = [0.0,0.0,0.0,0.0]
-
 class LocalNav:
     def callbackPath(self,data):
-        rospy.loginfo(rospy.get_caller_id() + ' !!!!!!!!!!!!!!!!I heard %s', data.poses[0].pose.position.x)
+        
+        # This callback will functionally only need to run once to pull the current
+        # global path into a local list in order, other times it will just post the current Path
+        
+        if not self.gotNewPath:
+            #rospy.loginfo(rospy.get_caller_id() + ' !!!!!!!!!!!!!!!! I heard %s', data.poses[0].pose.position.x)
+            length = len(data.poses)
+            #rospy.loginfo(rospy.get_caller_id() + ' !!!!!!!!!!!!!!!! Length of path %s', length)
+            for i in range (0,length):
+                x = data.poses[i].pose.position.x
+                y = data.poses[i].pose.position.y
+                self.currentPath.append([x,y])
+            self.nextGlobalWaypoint = self.currentPath[0]
+            self.nextnextGlobalWaypoint = self.currentPath[1]
+            self.gotNewPath = True
+        
+        if self.gotNewPath:
+            rospy.loginfo(rospy.get_caller_id() + ': Path: %s', self.currentPath)
+            
         self.gotPath_ = True
         # 
 
 
     def callbackCarPos(self,msg):
 
-        global pose
+        #global pose
         x=msg.pose.pose.position.x
         y=msg.pose.pose.position.y
         q0 = msg.pose.pose.orientation.w
@@ -28,13 +42,12 @@ class LocalNav:
         q2 = msg.pose.pose.orientation.y
         q3 = msg.pose.pose.orientation.z
         theta=atan2(2*(q0*q3+q1*q2),1-2*(q2*q2+q3*q3))
-        pose=[x,y,theta]
-        rospy.loginfo(pose)
+        self.currentCarPose=[x,y,0,theta]
+        rospy.loginfo(self.currentCarPose)
         self.gotCarPose_ = True
 
 
     def callbackOccGrid(self,msg):
-        #rospy.loginfo(rospy.get_caller_id() + "I heard %s", data.data)
         width=msg.info.width
         height=msg.info.width
         origin=msg.info.origin
@@ -149,15 +162,27 @@ class LocalNav:
         
         self.gotCostMap_ = True
 
+    def euclid(self, point1, point2): #DONE
+        dist = math.sqrt((point1[0]-point2[0])**2+(point1[1]-point2[1])**2)
+        return dist
 
 
     def __init__(self):
+        
+        self.distToNextWP = 10 # 10 meters is close enough to next waypoint
 
+        self.currentCarPose = [0.0,0.0,0.0,0.0]
+        self.currentPath = [] # Will contain the path
+        self.gotNewPath = False  #Allows trigger once for getting a new path
+        
+        self.nextGlobalWaypoint = []
+        self.nextnextGlobalWaypoint = []
         
         self.gotPath_ = False
         self.gotCarPose_ = False
         self.gotCostMap_ = False
 
+        ## Subscribers
         # subscribe for the car pose ground truth position
         rospy.Subscriber("base_pose_ground_truth", Odometry, self.callbackCarPos, queue_size =1)
         
@@ -168,18 +193,38 @@ class LocalNav:
 
         rospy.Subscriber("local_costmap", OccupancyGrid, self.callbackOccGrid, queue_size=1)
     
+        # Publishers
+        
+    
         #rospy.spin()
+        
+        rate = rospy.Rate(10) # 10 Hz
 
         while not rospy.is_shutdown():
             if self.gotPath_:
                 #Do something with the path beyond the callback
                 self.gotPath_ = False
             if self.gotCarPose_:
-                #Do something knowing the carPose
+                # Check current car position against current waypoint distance
+                currentx = self.currentCarPose[0]
+                currenty = self.currentCarPose[1]
+                if self.gotNewPath:
+                    distance = self.euclid([currentx,currenty], self.nextGlobalWaypoint)
+                    if (distance <= self.distToNextWP):
+                        # make the nextGlobalWP equal to nextnextGlobalWP
+                        # increment nextnextGlobalWP to the next WP in path
+                        rospy.loginfo('Reached the next waypoint %s with distance from %s', self.nextGlobalWaypoint,distance)
+                        #publish the nextWaypoint with a desired velocity
+                    else:
+                        rospy.loginfo('Still going to waypoint %s', self.nextGlobalWaypoint)
+                        #publish the nextWaypoint (same as before) with a desired velocity
                 self.gotCarPose_ = False
             if self.gotCostMap_:
-                #Do something knowing obstacles
+                #Do adjustments to the next waypoint based on obstacles in gotCarPose if above
+                #Use this 
                 self.gotCostMap_ = False
+            rate.sleep()
+            
 
 
 if __name__ == '__main__':
