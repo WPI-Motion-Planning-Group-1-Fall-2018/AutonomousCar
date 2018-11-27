@@ -45,7 +45,7 @@ void LocalPlanner::planPath()
             //calcOccGrid();
             calcPathMsg(result.second.child_point);
             //calcMPMessage(result.second.child_point);
-            ROS_INFO_STREAM("path found!");
+            //ROS_INFO_STREAM("path found!");
             return;
         }
         std::vector<GraphNode> neighbors = getNeighbors(current_node);
@@ -73,7 +73,7 @@ void LocalPlanner::planPath()
         count++;
         if(count == 10)
         {
-            calcOccGrid();
+            //calcOccGrid();
             count = 0;
         }
         closeNode();
@@ -128,7 +128,7 @@ double LocalPlanner::calcH(const GraphNode &node)
    {
        speed_heuristic = fabs(speed - local_nav.speed) * 100;
    }
-   double cost = fabs(dist_heuristic + yaw_heuristic + costmap_value + speed_heuristic);
+   double cost = fabs(dist_heuristic + yaw_heuristic + speed_heuristic);
    return cost;
 }
 
@@ -167,14 +167,21 @@ std::vector<GraphNode> LocalPlanner::getNeighbors(const GraphNode &node)
 
 bool LocalPlanner::checkGoalDist(const GraphNode &node)
 {
-    double dx = node.child_point.first - local_nav.x;
-    double dy = node.child_point.second - local_nav.y;
+    double next_vel = node.velocity + local_nav.max_accel * m_time_step_ms / 1000;
+    if(next_vel > local_nav.max_speed)
+    {
+        next_vel = local_nav.max_speed;
+    }
+    double average_vel = (next_vel + node.velocity) / 2;
+    double x = node.child_point.first + average_vel * m_time_step_ms / 1000 * cos(node.heading);
+    double y = node.child_point.second + average_vel * m_time_step_ms / 1000 * sin(node.heading);
+    double dx = x - local_nav.x;
+    double dy = y - local_nav.y;
     double dist_to_goal = sqrt(pow(dx, 2) + pow(dy, 2));
     double speed = node.velocity;
     double max_accel = local_nav.max_accel;
     double time_to_decel = (speed - local_nav.speed) / max_accel;
     double dist_to_decel = speed * time_to_decel - local_nav.max_accel * pow(time_to_decel, 2) / 2;
-    //check to see if next point at max speed will be there instead
     return (dist_to_goal + m_goal_pos_tolerance <= dist_to_decel);
 }
 

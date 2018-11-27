@@ -19,7 +19,6 @@ struct GraphNode{
         parent_point = pp;
         heading = h;
         velocity = v;
-
     }
 
     bool operator==(const GraphNode &rhs) const
