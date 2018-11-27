@@ -46,6 +46,7 @@ private:
     double calcG(const GraphNode &node);
     double calcW(const GraphNode &node);
     std::vector<GraphNode> getNeighbors(const GraphNode &node);
+    bool checkGoalDist(const GraphNode &node);
     std::vector<double> calcPossibleVelocities(const GraphNode &node);
     std::vector<double> calcPossibleYaws(const GraphNode &node);
     std::vector<point> calcPointsBetween(const point &current_pt, const point &new_pt);

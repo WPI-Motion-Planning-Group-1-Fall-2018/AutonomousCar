@@ -31,7 +31,7 @@ void LocalPlanner::planPath()
     while(true)
     {
         duration = ros::Time::now() - start_time;
-        if(duration.toSec() > 2)
+        if(duration.toSec() > 100)
         {
             ROS_ERROR_STREAM("path plan time exceeded, attempting to replan");
             return;
@@ -44,7 +44,7 @@ void LocalPlanner::planPath()
             openNode(result.second);
             //calcOccGrid();
             calcPathMsg(result.second.child_point);
-            calcMPMessage(result.second.child_point);
+            //calcMPMessage(result.second.child_point);
             ROS_INFO_STREAM("path found!");
             return;
         }
@@ -73,7 +73,7 @@ void LocalPlanner::planPath()
         count++;
         if(count == 10)
         {
-            //calcOccGrid();
+            calcOccGrid();
             count = 0;
         }
         closeNode();
@@ -124,6 +124,10 @@ double LocalPlanner::calcH(const GraphNode &node)
    double yaw_heuristic = abs(node.heading - yaw_to_goal) / (2 * M_PI) * 100;
    double costmap_value = abs(getCSpaceValue(node.child_point)) / 25;
    double speed_heuristic = 100 - speed / m_max_velocity * 100;
+   if(checkGoalDist(node))
+   {
+       speed_heuristic = fabs(speed - local_nav.speed) * 100;
+   }
    double cost = fabs(dist_heuristic + yaw_heuristic + costmap_value + speed_heuristic);
    return cost;
 }
@@ -144,6 +148,7 @@ std::vector<GraphNode> LocalPlanner::getNeighbors(const GraphNode &node)
     {
         for(auto yaw : possible_yaws)
         {
+
             double average_velocity = (node.velocity + velocity);
             double x = node.child_point.first + (average_velocity * m_time_step_ms / 1000) * cos(yaw);
             double y = node.child_point.second + (average_velocity * m_time_step_ms / 1000) * sin(yaw);
@@ -158,6 +163,19 @@ std::vector<GraphNode> LocalPlanner::getNeighbors(const GraphNode &node)
         }
     }
     return new_nodes;
+}
+
+bool LocalPlanner::checkGoalDist(const GraphNode &node)
+{
+    double dx = node.child_point.first - local_nav.x;
+    double dy = node.child_point.second - local_nav.y;
+    double dist_to_goal = sqrt(pow(dx, 2) + pow(dy, 2));
+    double speed = node.velocity;
+    double max_accel = local_nav.max_accel;
+    double time_to_decel = (speed - local_nav.speed) / max_accel;
+    double dist_to_decel = speed * time_to_decel - local_nav.max_accel * pow(time_to_decel, 2) / 2;
+    //check to see if next point at max speed will be there instead
+    return (dist_to_goal + m_goal_pos_tolerance <= dist_to_decel);
 }
 
 std::vector<double> LocalPlanner::calcPossibleVelocities(const GraphNode &node)
@@ -719,12 +737,10 @@ void LocalPlanner::publishGoal()
     goal_pub.publish(goal);
 }
 
-
 void LocalPlanner::publishPath(const nav_msgs::Path &path)
 {
     path_pub.publish(path);
 }
-
 
 void LocalPlanner::calcYawRateDuration()
 {
