@@ -54,13 +54,9 @@ class LocalNav:
         resolution = msg.info.resolution
         maptime = msg.info.map_load_time
         
-        region1 = False
-        region2 = False
-        region3 = False
-        region4 = False
-        region5 = False
-        region6 = False
-        obstacle = False
+        
+        
+        
         
         # create a zero array
         board = np.zeros([width,height])
@@ -87,74 +83,146 @@ class LocalNav:
                         foundx = x
                         foundy = y'''
                 
-                if ((y>=180) and (y<=239) and (x>=120) and (x<=179)):
+                #F1
+                if ((y>=180) and (y<=209) and (x>=140) and (x<=159)):
                     if (board[x][y] == 100):
-                        obstacle = True
-                        region1 = True
+                        self.obstacle = True
+                        self.regionF1 = True
                         foundx = x
                         foundy = y
-                
-                if ((y>=240) and (y<=299) and (x>=120) and (x<=179)):
-                    if (board[x][y] == 100):
-                        obstacle = True
-                        region2 = True
-                        foundx = x
-                        foundy = y
-                
                         
-                if ((y>=180) and (y<=239) and (x>=180) and (x<=239)):
+                #F2
+                if ((y>=210) and (y<=239) and (x>=140) and (x<=159)):
                     if (board[x][y] == 100):
-                        obstacle = True
-                        region3 = True
+                        self.obstacle = True
+                        self.regionF2 = True
+                        foundx = x
+                        foundy = y
+                        
+                #F3
+                if ((y>=240) and (y<=269) and (x>=140) and (x<=159)):
+                    if (board[x][y] == 100):
+                        self.obstacle = True
+                        self.regionF3 = True
+                        foundx = x
+                        foundy = y
+                        
+                #F4
+                if ((y>=270) and (y<=299) and (x>=140) and (x<=159)):
+                    if (board[x][y] == 100):
+                        self.obstacle = True
+                        self.regionF4 = True
+                        foundx = x
+                        foundy = y
+               
+                #######     
+                #R1
+                if ((y>=180) and (y<=209) and (x>=120) and (x<=139)):
+                    if (board[x][y] == 100):
+                        self.obstacle = True
+                        self.regionR1 = True
+                        foundx = x
+                        foundy = y
+                        
+                #R2
+                if ((y>=210) and (y<=239) and (x>=120) and (x<=139)):
+                    if (board[x][y] == 100):
+                        self.obstacle = True
+                        self.regionR2 = True
+                        foundx = x
+                        foundy = y
+                        
+                #R3
+                if ((y>=240) and (y<=269) and (x>=120) and (x<=139)):
+                    if (board[x][y] == 100):
+                        self.obstacle = True
+                        self.regionR3 = True
+                        foundx = x
+                        foundy = y
+                        
+                #R4
+                if ((y>=270) and (y<=299) and (x>=120) and (x<=139)):
+                    if (board[x][y] == 100):
+                        self.obstacle = True
+                        self.regionR4 = True
                         foundx = x
                         foundy = y
                 
-                if ((y>=240) and (y<=299) and (x>=180) and (x<=239)):
+                #######     
+                #L1
+                if ((y>=180) and (y<=209) and (x>=160) and (x<=179)):
                     if (board[x][y] == 100):
-                        obstacle = True
-                        region4 = True
+                        self.obstacle = True
+                        self.regionL1 = True
                         foundx = x
                         foundy = y
-                
-                if ((y>=180) and (y<=239) and (x>=60) and (x<=119)):
+                        
+                #L2
+                if ((y>=210) and (y<=239) and (x>=160) and (x<=179)):
                     if (board[x][y] == 100):
-                        obstacle = True
-                        region5 = True
+                        self.obstacle = True
+                        self.regionL2 = True
                         foundx = x
                         foundy = y
-                
-                if ((y>=240) and (y<=299) and (x>=60) and (x<=119)):
+                        
+                #L3
+                if ((y>=240) and (y<=269) and (x>=160) and (x<=179)):
                     if (board[x][y] == 100):
-                        obstacle = True
-                        region6 = True
+                        self.obstacle = True
+                        self.regionL3 = True
                         foundx = x
                         foundy = y
+                        
+                #L4
+                if ((y>=270) and (y<=299) and (x>=160) and (x<=179)):
+                    if (board[x][y] == 100):
+                        self.obstacle = True
+                        self.regionL4 = True
+                        foundx = x
+                        foundy = y
+                                  
                 
-                                 
-                
-        if obstacle:
-            rospy.loginfo("Obstacle found")
+        if self.obstacle:
+            rospy.loginfo("Obstacles found")
             rospy.loginfo("Lastfoundx: %s and LastFoundy: %s", foundx, foundy)
         else:
             rospy.loginfo("NO Obstacle found, keep trucking at speed")
             
-        if region1:
-            rospy.loginfo("Obstacle in Region 1 - Immediate Front")
+        if self.regionF1:
+            rospy.loginfo("Obstacle in Region F1")
                
-        if region2:
-            rospy.loginfo("Obstacle in Region 2 - Distant Front")
+        if self.regionF2:
+            rospy.loginfo("Obstacle in Region F2")
         
-        if region3:
-            rospy.loginfo("Obstacle in Region 3 - Immediate Front Left")
+        if self.regionF3:
+            rospy.loginfo("Obstacle in Region F3")
                
-        if region4:
-            rospy.loginfo("Obstacle in Region 4 - Distant Front Left")
+        if self.regionF4:
+            rospy.loginfo("Obstacle in Region F4")
         
-        if region5:
-            rospy.loginfo("Obstacle in Region 5 - Immediate Front Right")
+        if self.regionL1:
+            rospy.loginfo("Obstacle in Region L1")
                
-        if region6:
-            rospy.loginfo("Obstacle in Region 6 - Distant Front Right")
+        if self.regionL2:
+            rospy.loginfo("Obstacle in Region L2")
+        
+        if self.regionL3:
+            rospy.loginfo("Obstacle in Region L3")
+               
+        if self.regionL4:
+            rospy.loginfo("Obstacle in Region L4")
+        
+        if self.regionR1:
+            rospy.loginfo("Obstacle in Region R1")
+               
+        if self.regionR2:
+            rospy.loginfo("Obstacle in Region R2")
+        
+        if self.regionR3:
+            rospy.loginfo("Obstacle in Region R3")
+               
+        if self.regionR4:
+            rospy.loginfo("Obstacle in Region R4")
             
             
         #rospy.loginfo("Width: %s and Height: %s", width, height)
@@ -168,6 +236,23 @@ class LocalNav:
 
 
     def __init__(self):
+        
+        self.regionF1 = False
+        self.regionF2 = False
+        self.regionF3 = False
+        self.regionF4 = False
+        
+        self.regionL1 = False
+        self.regionL2 = False
+        self.regionL3 = False
+        self.regionL4 = False
+        
+        self.regionR1 = False
+        self.regionR2 = False
+        self.regionR3 = False
+        self.regionR4 = False
+        
+        self.obstacle = False
         
         self.distToNextWP = 10 # 10 meters is close enough to next waypoint
 
