@@ -59,7 +59,7 @@ private:
     double m_speed;
     int m_control_it = 0;
     ros::Time m_current_time;
-    ros::Time m_previous_time = ros::Time::now();
+    ros::Time m_start_time = ros::Time::now();
     ros::Duration m_d_time;
 
 

@@ -370,33 +370,27 @@ std::pair<tf::StampedTransform, tf::StampedTransform> LocalPlanner::getTransform
 {
     tf::TransformListener listener;
     tf::StampedTransform transform_1, transform_2;
-
     while(!listener.canTransform(link_1, "base_link", ros::Time(0)) && !listener.canTransform(link_2, "base_link", ros::Time(0)))
     {
         ros::Duration d(0.1);
         d.sleep();
     }
-
     try
     {
         listener.lookupTransform(link_1, "base_link", ros::Time(0), transform_1);
     }
-
     catch(tf::TransformException ex)
     {
         ROS_ERROR("%s", ex.what());
     }
-
     try
     {
         listener.lookupTransform(link_2, "base_link", ros::Time(0), transform_2);
     }
-
     catch(tf::TransformException ex)
     {
         ROS_ERROR("%s", ex.what());
     }
-
     std::pair<tf::StampedTransform, tf::StampedTransform> transforms = std::make_pair(transform_1, transform_2);
     return transforms;
 }
@@ -513,6 +507,7 @@ void LocalPlanner::publishOccGrid(const nav_msgs::OccupancyGrid &grid)
 void LocalPlanner::calcPathMsg(const point &goal_pt)
 {
     std::vector<point> reverse_path;
+    path.poses.clear();
     point current_point = goal_pt;
     reverse_path.push_back(current_point);
     while(current_point != point(0, 0))
@@ -534,7 +529,6 @@ void LocalPlanner::calcPathMsg(const point &goal_pt)
             }
         }
     }
-    nav_msgs::Path path;
     path.header.frame_id = "base_link";
     path.header.stamp = ros::Time::now();
     for(int i = reverse_path.size() - 1; i >= 0; i--)
@@ -551,135 +545,43 @@ void LocalPlanner::calcPathMsg(const point &goal_pt)
 
 void LocalPlanner::calcMPMessage(const point &goal_pt)
 {
-    prius_msgs::MotionPlanning mp_out, reverse_mp_out;
+    prius_msgs::MotionPlanning mp_out;
     mp_out.header.stamp = ros::Time::now();
     mp_out.max_accel = local_nav.max_accel;
     mp_out.max_speed = local_nav.max_speed;
-    point current_point = goal_pt;
-    while(current_point != point(0, 0))
+    for(int i = 0; i < path.poses.size() - 2; i++)
     {
-        GraphNode *child_node, *parent_node, *grandparent_node;
-        for(auto child_node_ : m_tree_open)
+        point current_pt(path.poses[i].pose.position.x, path.poses[i].pose.position.y);
+        point next_pt(path.poses[i + 1].pose.position.x, path.poses[i + 1].pose.position.y);
+        GraphNode current_node(current_pt, next_pt, 0, 0);
+        GraphNode next_node(current_pt, next_pt, 0, 0);
+        for(auto node : m_tree_open)
         {
-            if(current_point == child_node_.child_point)
+            if(current_pt == node.child_point)
             {
-                current_point = child_node_.parent_point;
-                child_node = &child_node_;
-                for(auto parent_node_ : m_tree_open)
-                {
-                    if(child_node_.parent_point == parent_node_.child_point)
-                    {
-                        parent_node = &parent_node_;
-
-                        for(auto grandparent_node_ : m_tree_open)
-                        {
-                            if(parent_node_.parent_point == grandparent_node_.child_point)
-                            {
-                                grandparent_node = &grandparent_node_;
-                            }
-                        }
-                        for(auto grandparent_node_ : m_tree_closed)
-                        {
-                            if(parent_node_.parent_point == grandparent_node_.child_point)
-                            {
-                                grandparent_node = &grandparent_node_;
-                            }
-                        }
-                    }
-                }
-                for(auto parent_node_ : m_tree_closed)
-                {
-                    if(child_node_.parent_point == parent_node_.child_point)
-                    {
-                        parent_node = &parent_node_;
-
-                        for(auto grandparent_node_ : m_tree_open)
-                        {
-                            if(parent_node_.parent_point == grandparent_node_.child_point)
-                            {
-                                grandparent_node = &grandparent_node_;
-                            }
-                        }
-                        for(auto grandparent_node_ : m_tree_closed)
-                        {
-                            if(parent_node_.parent_point == grandparent_node_.child_point)
-                            {
-                                grandparent_node = &grandparent_node_;
-                            }
-                        }
-                    }
-                }
+                current_node = node;
+            }
+            else if(next_pt == node.child_point)
+            {
+                next_node = node;
             }
         }
-        for(auto child_node_ : m_tree_closed)
+        for(auto node : m_tree_closed)
         {
-            if(current_point == child_node_.child_point)
+            if(current_pt == node.child_point)
             {
-                current_point = child_node_.parent_point;
-                child_node = &child_node_;
-                for(auto parent_node_ : m_tree_open)
-                {
-                    if(child_node_.parent_point == parent_node_.child_point)
-                    {
-                        parent_node = &parent_node_;
-
-                        for(auto grandparent_node_ : m_tree_open)
-                        {
-                            if(parent_node_.parent_point == grandparent_node_.child_point)
-                            {
-                                grandparent_node = &grandparent_node_;
-                            }
-                        }
-                        for(auto grandparent_node_ : m_tree_closed)
-                        {
-                            if(parent_node_.parent_point == grandparent_node_.child_point)
-                            {
-                                grandparent_node = &grandparent_node_;
-                            }
-                        }
-                    }
-                }
-                for(auto parent_node_ : m_tree_closed)
-                {
-                    if(child_node_.parent_point == parent_node_.child_point)
-                    {
-                        parent_node = &parent_node_;
-
-                        for(auto grandparent_node_ : m_tree_open)
-                        {
-                            if(parent_node_.parent_point == grandparent_node_.child_point)
-                            {
-                                grandparent_node = &grandparent_node_;
-                            }
-                        }
-                        for(auto grandparent_node_ : m_tree_closed)
-                        {
-                            if(parent_node_.parent_point == grandparent_node_.child_point)
-                            {
-                                grandparent_node = &grandparent_node_;
-                            }
-                        }
-                    }
-                }
+                current_node = node;
+            }
+            else if(next_pt == node.child_point)
+            {
+                next_node = node;
             }
         }
-        reverse_mp_out.durations.push_back(m_time_step_ms);
-        reverse_mp_out.speeds.push_back(child_node->velocity);
-        double dx1 = grandparent_node->child_point.first - parent_node->child_point.first;
-        double dy1 = grandparent_node->child_point.second - parent_node->child_point.second;
-        double angle1 = atan2(dy1, dx1);
-        double dx2 = parent_node->child_point.first - child_node->child_point.first;
-        double dy2 = parent_node->child_point.second - child_node->child_point.second;
-        double angle2 = atan2(dy2, dx2);
-        double d_yaw = angle2 - angle1;
-        double yaw_rate = d_yaw / m_time_step_ms;
-        reverse_mp_out.yaw_rates.push_back(yaw_rate);
-        for(int i = reverse_mp_out.durations.size() - 1; i >= 0; i--)
-        {
-            mp_out.durations.push_back(reverse_mp_out.durations[i]);
-            mp_out.speeds.push_back(reverse_mp_out.speeds[i]);
-            mp_out.yaw_rates.push_back(reverse_mp_out.yaw_rates[i]);
-        }
+        double d_yaw = next_node.heading - current_node.heading;
+        double yaw_rate = d_yaw / (m_time_step_ms / 1000);
+        mp_out.durations.push_back(m_time_step_ms);
+        mp_out.speeds.push_back(next_node.velocity);
+        mp_out.yaw_rates.push_back(yaw_rate);
     }
     publishMPOutput(mp_out);
 }
@@ -784,6 +686,7 @@ void LocalPlanner::convertGoalToLocalFrame()
     catch(tf::TransformException  ex)
     {
         ROS_ERROR("%s", ex.what());
+        return;
     }
     tf::Point global_point(local_nav.x, local_nav.y, 0);
     tf::Point local_point = transform * global_point;

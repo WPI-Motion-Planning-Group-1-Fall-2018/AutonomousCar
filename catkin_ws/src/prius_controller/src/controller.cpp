@@ -58,7 +58,6 @@ void PriusController::calculateSteering()
     {
         m_control.steer = -1;
     }
-
     m_previous_time_s = ros::Time::now();
     m_prev_err_s = error;
 }
@@ -117,17 +116,18 @@ void PriusController::calculatePedals()
         control_speed = -1;
     }
 
-    if(error >= 0)
+    if(control_speed >= 0)
     {
         m_control.throttle = control_speed;
         m_control.brake = 0;
     }
 
-    if(error < 0)
+    if(control_speed < 0)
     {
         m_control.brake = -control_speed;
         m_control.throttle = 0;
     }
+    ROS_INFO_STREAM(error);
 
     m_previous_time_p = ros::Time::now();
     m_prev_err_p = error;
@@ -146,11 +146,11 @@ double PriusController::calculateYawRate()
 void PriusController::getCurrentCommandIterator()
 {
   m_current_time = ros::Time::now();
-  m_d_time = m_current_time - m_previous_time;
-  m_previous_time = m_current_time;
+  m_d_time = m_current_time - m_start_time;
   double duration = m_mp_control.durations[m_control_it] / 1000;
   if(m_d_time.toSec() >= duration)
   {
+    m_start_time = ros::Time::now();
     m_control_it++;
   }
   if(m_control_it > m_mp_control.yaw_rates.size())
@@ -180,6 +180,7 @@ void PriusController::extractPriusPose()
 void PriusController::motionPlanningCallback(const prius_msgs::MotionPlanning::ConstPtr &msg)
 {
     m_received_msg = true;
+    m_start_time = ros::Time::now();
     m_mp_control = *msg;
     m_control_it = 0;
     calculateAndPublishControls();

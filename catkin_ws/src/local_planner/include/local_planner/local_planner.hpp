@@ -98,6 +98,7 @@ private:
     prius_msgs::LocalNav local_nav;
     urdf::Model prius_model;
     geometry_msgs::Twist prius_velocity;
+    nav_msgs::Path path;
 
 
     //planning members
