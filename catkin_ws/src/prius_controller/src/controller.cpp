@@ -127,8 +127,6 @@ void PriusController::calculatePedals()
         m_control.brake = -control_speed;
         m_control.throttle = 0;
     }
-    ROS_INFO_STREAM(error);
-
     m_previous_time_p = ros::Time::now();
     m_prev_err_p = error;
 }
