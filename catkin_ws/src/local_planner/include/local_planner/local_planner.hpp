@@ -62,6 +62,7 @@ private:
     int calcGridLocation(const double &x, const double &y);
     point calcCSpaceCoords(const point &pt);
     bool checkCollision(const point &pt, const double &yaw);
+    void convertGoalToLocalFrame();
 
     //settin all the stuffs up rel gud
     void setupCollision(ros::NodeHandle &pnh);

@@ -31,7 +31,7 @@ void LocalPlanner::planPath()
     while(true)
     {
         duration = ros::Time::now() - start_time;
-        if(duration.toSec() > 100)
+        if(duration.toSec() > 1)
         {
             ROS_ERROR_STREAM("path plan time exceeded, attempting to replan");
             return;
@@ -44,7 +44,7 @@ void LocalPlanner::planPath()
             openNode(result.second);
             //calcOccGrid();
             calcPathMsg(result.second.child_point);
-            //calcMPMessage(result.second.child_point);
+            calcMPMessage(result.second.child_point);
             //ROS_INFO_STREAM("path found!");
             return;
         }
@@ -148,7 +148,6 @@ std::vector<GraphNode> LocalPlanner::getNeighbors(const GraphNode &node)
     {
         for(auto yaw : possible_yaws)
         {
-
             double average_velocity = (node.velocity + velocity);
             double x = node.child_point.first + (average_velocity * m_time_step_ms / 1000) * cos(yaw);
             double y = node.child_point.second + (average_velocity * m_time_step_ms / 1000) * sin(yaw);
@@ -262,7 +261,6 @@ void LocalPlanner::markGoalPoint()
 {
     m_goal_pt = std::make_tuple(local_nav.x, local_nav.y, local_nav.speed);
 }
-
 
 std::pair<bool, GraphNode> LocalPlanner::checkForGoal(const GraphNode &node)
 {
@@ -767,7 +765,30 @@ void LocalPlanner::costmapCallback(const nav_msgs::OccupancyGrid::ConstPtr &msg)
 void LocalPlanner::localNavCallback(const prius_msgs::LocalNav::ConstPtr &msg)
 {
     local_nav = *msg;
+    convertGoalToLocalFrame();
     planPath();
+}
+
+void LocalPlanner::convertGoalToLocalFrame()
+{
+    tf::StampedTransform transform;
+    tf::TransformListener listener;
+    while(!listener.canTransform("/base_link", "/map", ros::Time(0)))
+    {
+        continue;
+    }
+    try
+    {
+        listener.lookupTransform("/base_link", "/map", ros::Time(0), transform);
+    }
+    catch(tf::TransformException  ex)
+    {
+        ROS_ERROR("%s", ex.what());
+    }
+    tf::Point global_point(local_nav.x, local_nav.y, 0);
+    tf::Point local_point = transform * global_point;
+    local_nav.x = local_point.x();
+    local_nav.y = local_point.y();
 }
 
 void LocalPlanner::gazeboStatesCallback(const gazebo_msgs::ModelStates::ConstPtr &msg)
