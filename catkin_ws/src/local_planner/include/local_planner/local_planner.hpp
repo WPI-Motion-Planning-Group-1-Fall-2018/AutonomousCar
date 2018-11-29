@@ -4,7 +4,6 @@
 #include <gazebo_msgs/ModelStates.h>
 #include <geometry_msgs/PoseStamped.h>
 #include <geometry_msgs/Twist.h>
-#include <geometry_msgs/PoseStamped.h>
 #include <graph_node.hpp>
 #include <nav_msgs/OccupancyGrid.h>
 #include <nav_msgs/Path.h>
@@ -13,7 +12,6 @@
 #include <queue>
 #include <stdlib.h>
 #include <tf/transform_listener.h>
-#include <time.h>
 #include <urdf/model.h>
 
 typedef std::pair<double, double> point;
@@ -66,8 +64,8 @@ private:
 
     //settin all the stuffs up rel gud
     void setupCollision(ros::NodeHandle &pnh);
-    double calcCollisionDistance(const std::string &link_1, const std::string &link_2);
-    std::pair<tf::StampedTransform, tf::StampedTransform> getTransforms(const std::string &link_1, const std::string &link_2);    
+    point calcCollisionDistance(const std::string &link_1, const std::string &link_2);
+    tf::StampedTransform getTransform(const std::string &link_1, const std::string &link_2);
     void setupCostmap(ros::NodeHandle &pnh);
     void setupCSpace();
     void getTreeParams(ros::NodeHandle &pnh);
@@ -79,7 +77,7 @@ private:
     void publishGoal();
     void publishOccGrid(const nav_msgs::OccupancyGrid &grid);
     void calcPathMsg(const point &goal_pt);
-    void calcMPMessage(const point &goal_pt);
+    void calcMPMessage();
     void publishPath(const nav_msgs::Path &path);
     void constructMPMsg();
     void calcYawRateDuration();
