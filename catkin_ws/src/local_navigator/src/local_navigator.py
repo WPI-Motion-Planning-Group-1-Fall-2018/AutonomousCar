@@ -489,7 +489,7 @@ class LocalNavigator:
         self.intermediateWPSpecified = False
         self.nextGlobalWaypoint = []
         self.pathIndex = 0
-        self.mindistToNextWP = 30
+        self.mindistToNextWP = 10
         
         self.gotPath_ = False
         self.gotCarPose_ = False
