@@ -25,8 +25,9 @@ class LocalNavigator:
             
             #Expand the path with points in between that are close enough to local plan on
             self.currentExpandedPath.append(self.currentPath[0])
+            
             for i in range (0, self.lengthPath-1):
-                distpoints = self.euclid(self.currentPath[i],self.currentPath[i])
+                distpoints = self.euclid(self.currentPath[i],self.currentPath[i+1])
                 
                 divide = distpoints/self.distBetweenWP
                 if divide > 1:
@@ -55,7 +56,7 @@ class LocalNavigator:
             self.msg.max_speed = self.maxVelocity
             self.msg.max_accel = self.maxAccel
             
-            rospy.loginfo("Expanded path: %s", self.currentExpandedPath)
+        rospy.loginfo("Expanded path: %s", self.currentExpandedPath)
             
         self.gotPath_ = True
         # 
@@ -498,7 +499,7 @@ class LocalNavigator:
         self.obstacle_avoid_wpy = 0.0 #Initial value
         self.obstacle_avoid_spd = 0.0 #Initial value
         
-        self.distBetweenWP = 15 # Desired distance between WP
+        self.distBetweenWP = 5 # Desired distance between WP
 
         self.currentCarPose = [0.0,0.0,0.0,0.0]
         self.currentPath = [] # Will contain the original path
@@ -510,7 +511,7 @@ class LocalNavigator:
         self.intermediateWPSpecified = False
         self.nextGlobalWaypoint = []
         self.pathIndex = 0
-        self.mindistToNextWP = 10 # Prefer a waypoint that is a little further but less then distBetweenWP
+        self.mindistToNextWP = 5 # Prefer a waypoint that is a little further but less then distBetweenWP
         
         self.gotPath_ = False
         self.gotCarPose_ = False
@@ -539,7 +540,7 @@ class LocalNavigator:
     
         #rospy.spin()
         
-        rate = rospy.Rate(10) # 10 Hz
+        rate = rospy.Rate(1) # 10 Hz
 
         while not rospy.is_shutdown():
             if self.gotPath_:
@@ -587,7 +588,7 @@ class LocalNavigator:
                                     
                                         
                         #Found closest in Path waypoint
-                        #Confirm that the next waypoint is 30 m away at least
+                        #Confirm that the next waypoint is 10 m away
                                 
                         distToTheNewWaypoint = self.euclid([currentx,currenty], self.currentExpandedPath[self.pathIndex])
                                 
