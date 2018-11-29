@@ -82,9 +82,12 @@
     <param name="max_inflation_radius" value="5"/>
   </node>
 
+  <!--LOCAL NAVIGATOR-->
+  <node pkg="local_navigator" type="local_navigator.py" name="local_navigator" output="screen"/>
+
   <!--LOCAL PLANNER-->
   <node pkg="local_planner" type="local_planner_node" name="local_planner_node" output="screen">
-    <param name="collision_buffer_distance" value=".5"/>
+    <param name="collision_buffer_distance" value="1"/>
     <param name="time_step_ms" value = "150"/>
     <param name="velocity_res" value = "0.1"/>
     <param name="heading_res" value = "0.005"/>
