@@ -29,7 +29,9 @@ class LocalNavigator:
             
             self.msg.x = self.currentGlobalWaypoint[0]
             self.msg.y = self.currentGlobalWaypoint[1]
-            self.msg.speed = self.currentDesiredVelocity
+            self.msg.speed = self.defaultVelocity
+            self.msg.max_speed = self.maxVelocity
+            self.msg.max_accel = self.maxAccel
             
         
         #if self.gotNewPath:
@@ -495,6 +497,8 @@ class LocalNavigator:
         
         self.currentDesiredVelocity = 4.0  # Will change
         self.defaultVelocity = 4.0  # Configurable Constant
+        self.maxVelocity = 10.0
+        self.maxAccel = 2.0
 
         ## Subscribers
         # subscribe for the car pose ground truth position
@@ -541,6 +545,10 @@ class LocalNavigator:
                         self.msg.x = self.currentGlobalWaypoint[0]
                         self.msg.y = self.currentGlobalWaypoint[1]
                         self.msg.speed = self.currentDesiredVelocity
+                        
+                        self.msg.max_speed = self.maxVelocity
+                        self.msg.max_accel = self.maxAccel
+                        
                         pub.publish(self.msg)  # publish an obstacle avoidance waypoint
                         self.intermediateWPSpecified = True
                     
@@ -587,6 +595,8 @@ class LocalNavigator:
                                 self.msg.x = self.currentGlobalWaypoint[0]
                                 self.msg.y = self.currentGlobalWaypoint[1]
                                 self.msg.speed = self.currentDesiredVelocity
+                                self.msg.max_speed = self.maxVelocity
+                                self.msg.max_accel = self.maxAccel
                                 
                                 rospy.loginfo('Going to next waypoint %s at %s at index %s', self.currentGlobalWaypoint, self.currentDesiredVelocity, self.pathIndex)
                                 pub.publish(self.msg)
@@ -613,7 +623,10 @@ class LocalNavigator:
                                 self.currentDesiredVelocity = self.defaultVelocity
                                 self.msg.x = self.currentGlobalWaypoint[0]
                                 self.msg.y = self.currentGlobalWaypoint[1]
-                                self.msg.speed = self.currentDesiredVelocity 
+                                self.msg.speed = self.currentDesiredVelocity
+                                
+                                self.msg.max_speed = self.maxVelocity
+                                self.msg.max_accel = self.maxAccel
                             
                                 rospy.loginfo('Going to next waypoint %s at %s at index %s', self.currentGlobalWaypoint, self.currentDesiredVelocity, self.pathIndex)
                                 pub.publish(self.msg)
