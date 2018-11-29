@@ -5,7 +5,7 @@ namespace Prius {
 LocalPlanner::LocalPlanner(ros::NodeHandle &nh, ros::NodeHandle &pnh)
 {
     costmap_sub = nh.subscribe<nav_msgs::OccupancyGrid>("/local_costmap", 10, &LocalPlanner::costmapCallback, this);
-    local_nav_sub = nh.subscribe<prius_msgs::LocalNav>("/local_navigation", 100, &LocalPlanner::localNavCallback, this);
+    local_nav_sub = nh.subscribe<prius_msgs::LocalNav>("/local_nav_waypoints", 100, &LocalPlanner::localNavCallback, this);
     gazebo_state_sub = nh.subscribe<gazebo_msgs::ModelStates>("/gazebo/model_states", 100, &LocalPlanner::gazeboStatesCallback, this);
     mp_pub = nh.advertise<prius_msgs::MotionPlanning>("/mp", 10);
     goal_pub = nh.advertise<geometry_msgs::PoseStamped>("/goal", 100);
@@ -44,7 +44,7 @@ void LocalPlanner::planPath()
             openNode(result.second);
             //calcOccGrid();
             calcPathMsg(result.second.child_point);
-            calcMPMessage(result.second.child_point);
+            calcMPMessage();
             //ROS_INFO_STREAM("path found!");
             return;
         }
@@ -151,7 +151,7 @@ std::vector<GraphNode> LocalPlanner::getNeighbors(const GraphNode &node)
             double average_velocity = (node.velocity + velocity);
             double x = node.child_point.first + (average_velocity * m_time_step_ms / 1000) * cos(yaw);
             double y = node.child_point.second + (average_velocity * m_time_step_ms / 1000) * sin(yaw);
-            std::pair<double, double> new_pt = std::make_pair(x, y);
+            point new_pt(x, y);
             if(!checkCollision(new_pt, yaw))
             {
                 GraphNode new_node(new_pt, node.child_point, yaw, velocity);
@@ -324,9 +324,10 @@ void LocalPlanner::markVisited(const point &pt)
 void LocalPlanner::setupCollision(ros::NodeHandle &pnh)
 {
     prius_model.initParam("robot_description");
-
-    m_car_length = calcCollisionDistance("front_right_middle_sonar_link", "back_right_middle_sonar_link");
-    m_car_width = calcCollisionDistance("rear_right_wheel", "rear_left_wheel");
+    auto length_result = calcCollisionDistance("front_right_middle_sonar_link", "back_right_middle_sonar_link");
+    m_car_length = length_result.first;
+    auto width_result = calcCollisionDistance("rear_right_wheel", "rear_left_wheel");
+    m_car_width = width_result.first;
     tf::TransformListener listener;
     tf::StampedTransform transform;
     while(!listener.canTransform("rear_right_wheel", "center_laser_link", ros::Time(0)))
@@ -334,42 +335,38 @@ void LocalPlanner::setupCollision(ros::NodeHandle &pnh)
         ros::Duration d(0.1);
         d.sleep();
     }
-
     try
     {
         listener.lookupTransform("rear_right_wheel", "center_laser_link", ros::Time(0), transform);
     }
-
     catch(tf::TransformException  ex)
     {
         ROS_ERROR("%s", ex.what());
     }
-
     m_car_center_x = m_c_space.size() / 2 - 1;
     m_car_center_y = m_c_space[0].size() / 2 - 1;
     x_offset_pos = m_car_length - abs(transform.getOrigin().getX());
     x_offset_neg = m_car_length - x_offset_pos;
     m_min_collision_point_x = -m_car_width / 2 / m_local_costmap_res - m_collision_buffer_distance / m_local_costmap_res;
-    m_max_collision_point_x = m_car_width / 2 / m_local_costmap_res + m_collision_buffer_distance / m_local_costmap_res;
+    m_max_collision_point_x = m_car_width / 2 / m_local_costmap_res + m_collision_buffer_distance / m_local_costmap_res;  
     m_min_collision_point_y = -m_car_length / 2 / m_local_costmap_res - m_collision_buffer_distance / m_local_costmap_res;
     m_max_collision_point_y = m_car_length / 2 / m_local_costmap_res + m_collision_buffer_distance / m_local_costmap_res;
     m_num_x_points = m_car_width / 2 / m_local_costmap_res - m_collision_buffer_distance / m_local_costmap_res;
     m_num_y_points = m_car_width / 2 / m_local_costmap_res + m_collision_buffer_distance / m_local_costmap_res;
 }
 
-double LocalPlanner::calcCollisionDistance(const std::string &link_1, const std::string &link_2)
+point LocalPlanner::calcCollisionDistance(const std::string &link_1, const std::string &link_2)
 {
-    std::pair<tf::StampedTransform, tf::StampedTransform> transforms = getTransforms(link_1, link_2);
-    double distance_1 = abs(transforms.first.getOrigin().getX());
-    double distance_2 = abs(transforms.second.getOrigin().getX());
-    double distance = distance_1 + distance_2;
-    return distance;
+    tf::StampedTransform transform = getTransform(link_1, link_2);
+    double distance_x = abs(transform.getOrigin().getX());
+    double distance_y = abs(transform.getOrigin().getY());
+    return point(distance_x, distance_y);
 }
 
-std::pair<tf::StampedTransform, tf::StampedTransform> LocalPlanner::getTransforms(const std::string &link_1, const std::string &link_2)
+tf::StampedTransform LocalPlanner::getTransform(const std::string &link_1, const std::string &link_2)
 {
     tf::TransformListener listener;
-    tf::StampedTransform transform_1, transform_2;
+    tf::StampedTransform transform;
     while(!listener.canTransform(link_1, "base_link", ros::Time(0)) && !listener.canTransform(link_2, "base_link", ros::Time(0)))
     {
         ros::Duration d(0.1);
@@ -377,22 +374,13 @@ std::pair<tf::StampedTransform, tf::StampedTransform> LocalPlanner::getTransform
     }
     try
     {
-        listener.lookupTransform(link_1, "base_link", ros::Time(0), transform_1);
+        listener.lookupTransform(link_1, link_2, ros::Time(0), transform);
     }
     catch(tf::TransformException ex)
     {
         ROS_ERROR("%s", ex.what());
     }
-    try
-    {
-        listener.lookupTransform(link_2, "base_link", ros::Time(0), transform_2);
-    }
-    catch(tf::TransformException ex)
-    {
-        ROS_ERROR("%s", ex.what());
-    }
-    std::pair<tf::StampedTransform, tf::StampedTransform> transforms = std::make_pair(transform_1, transform_2);
-    return transforms;
+    return transform;
 }
 
 void LocalPlanner::setupCostmap(ros::NodeHandle &pnh)
@@ -420,6 +408,7 @@ void LocalPlanner::setupCSpace()
 
 void LocalPlanner::getTreeParams(ros::NodeHandle &pnh)
 {
+    pnh.getParam("collision_buffer_distance", m_collision_buffer_distance);
     pnh.getParam("time_step_ms", m_time_step_ms);
     pnh.getParam("velocity_res", m_velocity_res);
     pnh.getParam("heading_res", m_heading_res);
@@ -449,6 +438,7 @@ int LocalPlanner::calcGridLocation(const double &x, const double &y)
 
 bool LocalPlanner::checkCollision(const point &pt, const double &yaw)
 {
+    return false;
     calcCollisionMatrix(pt, yaw);
     for(auto row : m_collision_matrix)
     {
@@ -491,10 +481,11 @@ void LocalPlanner::calcCollisionMatrix(const point &pt, const double &yaw)
             {
                 continue;
             }
-            int collision_x = (new_pt.first + x * m_num_x_points) * cos(point_angle);
-            int collision_y = (new_pt.second + y * m_num_y_points) * sin(point_angle);
+            int collision_x = (new_pt.first + x / m_local_costmap_res) * cos(point_angle);
+            int collision_y = (new_pt.second + y / m_local_costmap_res) * sin(point_angle);
             point collision_pt = std::make_pair(collision_x, collision_y);
             m_collision_matrix[x].push_back(collision_pt);
+            markVisited(point(x, y));
         }
     }
 }
@@ -543,7 +534,7 @@ void LocalPlanner::calcPathMsg(const point &goal_pt)
     publishPath(path);
 }
 
-void LocalPlanner::calcMPMessage(const point &goal_pt)
+void LocalPlanner::calcMPMessage()
 {
     prius_msgs::MotionPlanning mp_out;
     mp_out.header.stamp = ros::Time::now();
