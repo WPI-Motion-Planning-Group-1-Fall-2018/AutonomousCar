@@ -3,7 +3,7 @@ import rospy
 from nav_msgs.msg import Odometry, OccupancyGrid, MapMetaData, Path
 from std_msgs.msg import String
 import math
-from math import sin, cos, pi,tan, atan2
+from math import sin, cos, pi,tan, atan2, ceil
 from geometry_msgs.msg import Twist, PoseStamped
 import numpy as np
 from prius_msgs.msg import LocalNav
@@ -22,9 +22,31 @@ class LocalNavigator:
                 x = data.poses[i].pose.position.x
                 y = data.poses[i].pose.position.y
                 self.currentPath.append([x,y])
-            self.currentGlobalWaypoint = self.currentPath[0]
+            
+            #Expand the path with points in between that are close enough to local plan on
+            self.currentExpandedPath.append(self.currentPath[0])
+            for i in range (0, self.lengthPath-1):
+                distpoints = self.euclid(self.currentPath[i],self.currentPath[i])
+                
+                divide = distpoints/self.distBetweenWP
+                if divide > 1:
+                    numsections = ceil(divide)
+                    
+                    deltax = (self.currentPath[i+1][0]-self.currentPath[i][0])/numsections
+                    deltay = (self.currentPath[i+1][1]-self.currentPath[i][1])/numsections
+            
+                    for n in range(1, int(numsections+1)):
+                        intermediatepoint = [self.currentPath[i][0]+n*deltax,self.currentPath[i][1]+n*deltay]
+                        self.currentExpandedPath.append(intermediatepoint)
+                else:
+                    self.currentExpandedPath.append(self.currentPath[i+1])
+            
+            self.lengthPath = len(self.currentExpandedPath)
+            
+            #Specify the first currentGloblalWaypoint
+            self.currentGlobalWaypoint = self.currentExpandedPath[0]
             self.pathIndex = 0
-            self.nextGlobalWaypoint = self.currentPath[1]
+            self.nextGlobalWaypoint = self.currentExpandedPath[1]
             self.gotNewPath = True
             
             self.msg.x = self.currentGlobalWaypoint[0]
@@ -33,9 +55,7 @@ class LocalNavigator:
             self.msg.max_speed = self.maxVelocity
             self.msg.max_accel = self.maxAccel
             
-        
-        #if self.gotNewPath:
-            #rospy.loginfo(rospy.get_caller_id() + ': Path: %s', self.currentPath)
+            rospy.loginfo("Expanded path: %s", self.currentExpandedPath)
             
         self.gotPath_ = True
         # 
@@ -52,7 +72,7 @@ class LocalNavigator:
         q3 = msg.pose.pose.orientation.z
         theta=atan2(2*(q0*q3+q1*q2),1-2*(q2*q2+q3*q3))
         self.currentCarPose=[x,y,0,theta]
-        #rospy.loginfo(self.currentCarPose)
+        rospy.loginfo("Car pose: %s",self.currentCarPose)
         self.gotCarPose_ = True
 
 
@@ -478,10 +498,11 @@ class LocalNavigator:
         self.obstacle_avoid_wpy = 0.0 #Initial value
         self.obstacle_avoid_spd = 0.0 #Initial value
         
-        self.distToWP = 10 # 10 meters is close enough to next waypoint
+        self.distBetweenWP = 15 # Desired distance between WP
 
         self.currentCarPose = [0.0,0.0,0.0,0.0]
-        self.currentPath = [] # Will contain the path
+        self.currentPath = [] # Will contain the original path
+        self.currentExpandedPath = [] # Will contain the expanded path (see callbackPath)
         self.gotNewPath = False  #Allows trigger once for getting a new path
         
         self.lastGlobalWaypoint = [] #Not really used
@@ -489,7 +510,7 @@ class LocalNavigator:
         self.intermediateWPSpecified = False
         self.nextGlobalWaypoint = []
         self.pathIndex = 0
-        self.mindistToNextWP = 10
+        self.mindistToNextWP = 10 # Prefer a waypoint that is a little further but less then distBetweenWP
         
         self.gotPath_ = False
         self.gotCarPose_ = False
@@ -518,7 +539,7 @@ class LocalNavigator:
     
         #rospy.spin()
         
-        rate = rospy.Rate(1) # 10 Hz
+        rate = rospy.Rate(10) # 10 Hz
 
         while not rospy.is_shutdown():
             if self.gotPath_:
@@ -557,9 +578,8 @@ class LocalNavigator:
                         distClosestWaypoint = 5000
                         #find closest waypoint to car
                         for i in range (currentpathIndex,self.lengthPath):
-                            distToTheWaypoint = self.euclid([currentx,currenty], self.currentPath[i])
+                            distToTheWaypoint = self.euclid([currentx,currenty], self.currentExpandedPath[i])
                             if distToTheWaypoint < distClosestWaypoint:
-                                #closestWaypoint = self.currentPath[i]
                                 self.pathIndex = i  #update the path index to this closest waypoint
                                 distClosestWaypoint = distToTheWaypoint # update closest wp distance
                             else: # waypoints are further away so might as well stop checking
@@ -569,20 +589,20 @@ class LocalNavigator:
                         #Found closest in Path waypoint
                         #Confirm that the next waypoint is 30 m away at least
                                 
-                        distToTheNewWaypoint = self.euclid([currentx,currenty], self.currentPath[self.pathIndex])
+                        distToTheNewWaypoint = self.euclid([currentx,currenty], self.currentExpandedPath[self.pathIndex])
                                 
                         while distToTheNewWaypoint < self.mindistToNextWP:
                         #increment on the path to the next furthest WP
                             self.pathIndex = self.pathIndex+1
                             if self.pathIndex == self.lengthPath -1:  #This is the last waypoint in path
                                 break
-                            distToTheNewWaypoint = self.euclid([currentx,currenty], self.currentPath[self.pathIndex])
+                            distToTheNewWaypoint = self.euclid([currentx,currenty], self.currentExpandedPath[self.pathIndex])
                         # Check the next waypoint     
                                 
                         #Found a NewWaypoint that is in Path that is at least 30 m away
                         # Update the currentGlobalWaypoint and Publish it
                                 
-                        self.currentGlobalWaypoint = self.currentPath[self.pathIndex]
+                        self.currentGlobalWaypoint = self.currentExpandedPath[self.pathIndex]
                         self.currentDesiredVelocity = self.defaultVelocity
                         self.msg.x = self.currentGlobalWaypoint[0]
                         self.msg.y = self.currentGlobalWaypoint[1]
