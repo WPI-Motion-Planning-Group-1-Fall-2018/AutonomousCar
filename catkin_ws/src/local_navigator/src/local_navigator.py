@@ -496,7 +496,7 @@ class LocalNavigator:
         self.gotCostMap_ = False
         
         self.currentDesiredVelocity = 4.0  # Will change
-        self.defaultVelocity = 4.0  # Configurable Constant
+        self.defaultVelocity = 3.0  # Configurable Constant
         self.maxVelocity = 10.0
         self.maxAccel = 2.0
 
@@ -553,8 +553,51 @@ class LocalNavigator:
                         self.intermediateWPSpecified = True
                     
                     else: # no obstacles, check current location and publish new wp or old wp
+                        currentpathIndex = self.pathIndex
+                        distClosestWaypoint = 5000
+                        #find closest waypoint to car
+                        for i in range (currentpathIndex,self.lengthPath):
+                            distToTheWaypoint = self.euclid([currentx,currenty], self.currentPath[i])
+                            if distToTheWaypoint < distClosestWaypoint:
+                                #closestWaypoint = self.currentPath[i]
+                                self.pathIndex = i  #update the path index to this closest waypoint
+                                distClosestWaypoint = distToTheWaypoint # update closest wp distance
+                            else: # waypoints are further away so might as well stop checking
+                                break
+                                    
+                                        
+                        #Found closest in Path waypoint
+                        #Confirm that the next waypoint is 30 m away at least
+                                
+                        distToTheNewWaypoint = self.euclid([currentx,currenty], self.currentPath[self.pathIndex])
+                                
+                        while distToTheNewWaypoint < self.mindistToNextWP:
+                        #increment on the path to the next furthest WP
+                            self.pathIndex = self.pathIndex+1
+                            if self.pathIndex == self.lengthPath -1:  #This is the last waypoint in path
+                                break
+                            distToTheNewWaypoint = self.euclid([currentx,currenty], self.currentPath[self.pathIndex])
+                        # Check the next waypoint     
+                                
+                        #Found a NewWaypoint that is in Path that is at least 30 m away
+                        # Update the currentGlobalWaypoint and Publish it
+                                
+                        self.currentGlobalWaypoint = self.currentPath[self.pathIndex]
+                        self.currentDesiredVelocity = self.defaultVelocity
+                        self.msg.x = self.currentGlobalWaypoint[0]
+                        self.msg.y = self.currentGlobalWaypoint[1]
+                        self.msg.speed = self.currentDesiredVelocity
+                        self.msg.max_speed = self.maxVelocity
+                        self.msg.max_accel = self.maxAccel
+                                
+                        rospy.loginfo('Going to next waypoint %s at %s at index %s', self.currentGlobalWaypoint, self.currentDesiredVelocity, self.pathIndex)
+                        pub.publish(self.msg)
                         
+
+                        '''
                         distance = self.euclid([currentx,currenty], self.currentGlobalWaypoint)
+                                              
+                                             
                         if (distance <= self.distToWP):  # Am i near the current goal WP?  Yes ...
                             if (self.pathIndex == self.lengthPath -1):
                                 break #break out of the while loop since you have reached the end
@@ -630,10 +673,11 @@ class LocalNavigator:
                             
                                 rospy.loginfo('Going to next waypoint %s at %s at index %s', self.currentGlobalWaypoint, self.currentDesiredVelocity, self.pathIndex)
                                 pub.publish(self.msg)
+                                
                             
                         else: # I am not close to the desired waypoint, so publish it again
                             rospy.loginfo('Still going to waypoint %s at %s at index %s', self.currentGlobalWaypoint, self.currentDesiredVelocity, self.pathIndex)
-                            pub.publish(self.msg)
+                            pub.publish(self.msg)'''
                         self.intermediateWPSpecified = False
                         
                 self.gotCarPose_ = False
