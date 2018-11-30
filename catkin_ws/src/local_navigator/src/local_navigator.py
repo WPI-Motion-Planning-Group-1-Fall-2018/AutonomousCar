@@ -499,8 +499,7 @@ class LocalNavigator:
         self.obstacle_avoid_wpy = 0.0 #Initial value
         self.obstacle_avoid_spd = 0.0 #Initial value
         
-        self.distBetweenWP = 5 # Desired distance between WP
-
+        
         self.currentCarPose = [0.0,0.0,0.0,0.0]
         self.currentPath = [] # Will contain the original path
         self.currentExpandedPath = [] # Will contain the expanded path (see callbackPath)
@@ -511,16 +510,22 @@ class LocalNavigator:
         self.intermediateWPSpecified = False
         self.nextGlobalWaypoint = []
         self.pathIndex = 0
-        self.mindistToNextWP = 5 # Prefer a waypoint that is a little further but less then distBetweenWP
         
         self.gotPath_ = False
         self.gotCarPose_ = False
         self.gotCostMap_ = False
         
-        self.currentDesiredVelocity = 4.0  # Will change
-        self.defaultVelocity = 3.0  # Configurable Constant
+        
+        ## BELOW ARE KEY PARAMETERS TO CONFIGURE
+        self.distBetweenWP = 2 # Desired distance between WP
+        self.mindistToNextWP = 25 # Prefer a waypoint that is out in front of car, must be less then 30
+
+        self.currentDesiredVelocity = 2.5  # Will change
+        self.defaultVelocity = 2.5  # Configurable Constant
         self.maxVelocity = 10.0
         self.maxAccel = 2.0
+        
+        self.Hertz = 10
 
         ## Subscribers
         # subscribe for the car pose ground truth position
@@ -540,7 +545,7 @@ class LocalNavigator:
     
         #rospy.spin()
         
-        rate = rospy.Rate(1) # 10 Hz
+        rate = rospy.Rate(self.Hertz) # 10 Hz
 
         while not rospy.is_shutdown():
             if self.gotPath_:
@@ -577,7 +582,8 @@ class LocalNavigator:
                     else: # no obstacles, check current location and publish new wp or old wp
                         currentpathIndex = self.pathIndex
                         distClosestWaypoint = 5000
-                        #find closest waypoint to car
+                        
+                        #find closest waypoint to car at the time 
                         for i in range (currentpathIndex,self.lengthPath):
                             distToTheWaypoint = self.euclid([currentx,currenty], self.currentExpandedPath[i])
                             if distToTheWaypoint < distClosestWaypoint:
