@@ -520,12 +520,12 @@ class LocalNavigator:
         self.distBetweenWP = 2 # Desired distance between WP
         self.mindistToNextWP = 25 # Prefer a waypoint that is out in front of car, must be less then 30
 
-        self.currentDesiredVelocity = 2.5  # Will change
-        self.defaultVelocity = 2.5  # Configurable Constant
-        self.maxVelocity = 10.0
-        self.maxAccel = 2.0
+        self.currentDesiredVelocity = 2  # Will change
+        self.defaultVelocity = 2  # Configurable Constant
+        self.maxVelocity = 2
+        self.maxAccel = 5.0
         
-        self.Hertz = 10
+        self.Hertz = 20
 
         ## Subscribers
         # subscribe for the car pose ground truth position
