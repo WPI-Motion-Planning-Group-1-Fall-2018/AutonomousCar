@@ -305,10 +305,8 @@ def getPoints(coords, nodes_dict):
             return []
 
         # Added by Kyle
-        #lon1 = np.median([nodes_dict[start][0], nodes_dict[goal][0]])
-        #lat1 = np.median([nodes_dict[start][1], nodes_dict[goal][1]])
-        lon1 = nodes_dict[start][0]
-        lat1 = nodes_dict[start][1]
+        lon1 = -87.735200
+        lat1 = 41.950200
         R = 6371 # radius of the earth
 
         lon2 = np.radians(coords[0])
