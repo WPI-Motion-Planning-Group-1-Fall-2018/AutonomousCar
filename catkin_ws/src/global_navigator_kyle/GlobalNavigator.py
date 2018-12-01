@@ -328,8 +328,7 @@ def getPoints(coords, nodes_dict):
                   np.sin(np.radians(lat1)) *
                   np.cos(lat2) * np.cos(dLon)))
         point = [distance*np.cos(angles) * 1000,
-                 -distance*np.sin(angles) * 1000,
-                 np.zeros(np.shape(distance))*1000]
+                 -distance*np.sin(angles) * 1000]
 
         return point
 
@@ -370,13 +369,12 @@ def main(algorithm, start, goal): # eventually have nodes.csv and edges.csv
 
     print("Number of nodes:", len(path_ids))
     print("Number of waypoints:", len(path_latlong))
-    print("Gazebo coords:", path_gazebo)
 
-    return path_latlong
+    return path_gazebo
 
 if __name__ == '__main__':
     
-    # Inputs
+    # Hard-coded Inputs
 
     algorithm = 3
 
@@ -388,4 +386,4 @@ if __name__ == '__main__':
 
     path = main(algorithm, start, goal)
 
-    print("path (lon, lat):", path)
+    print("path (gazebo XY):", path)
