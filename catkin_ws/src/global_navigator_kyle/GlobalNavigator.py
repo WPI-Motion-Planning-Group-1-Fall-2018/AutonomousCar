@@ -1,20 +1,16 @@
 '''
-
 Global Navigator
     - Inputs:
         - algorithm: Index of MP Algorithm to be used
             - 1: DFS Algorithm
             - 2: Dijkstra Algorithm
             - 3: A* Algorithm
-
     - Outputs:
         - path_latlong: Lat/Long points indicating waypoints of chosen path
-
     - Givens:
         - hard-coded start and finish nodes/coordinates
         - nodes.csv: Lookup table of Lon/Lat coordinates for each OSM ID
         - edges.csv: Line segments indicating a connection between two nodes, including the distance between them
-
 '''
 
 import csv, math, operator
@@ -304,7 +300,7 @@ def getPoints(coords, nodes_dict):
         if not any(coords):
             return []
 
-        # Added by Kyle
+        # Hard code center of OSM rectangle and radius of earth
         lon1 = -87.735200
         lat1 = 41.950200
         R = 6371 # radius of the earth
@@ -312,8 +308,8 @@ def getPoints(coords, nodes_dict):
         lon2 = np.radians(coords[0])
         lat2 = np.radians(coords[1])
 
-        dLon = lon2 - np.radians(lat1)
-        dLat = lat2 - np.radians(lon1)
+        dLon = lon2 - np.radians(lon1)
+        dLat = lat2 - np.radians(lat1)
 
         ## no idea what this letter a is
         a = (np.sin(dLat/2) * np.sin(dLat/2) +
@@ -323,8 +319,6 @@ def getPoints(coords, nodes_dict):
 
         ## no idea what this letter c is
         c = 2 * np.arctan2(np.sqrt(a), np.sqrt(1-a))
-
-        print(a, c)
 
         distance = R * c
 
