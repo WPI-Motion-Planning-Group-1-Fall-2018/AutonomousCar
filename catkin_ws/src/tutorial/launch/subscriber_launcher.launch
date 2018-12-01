@@ -1,0 +1,5 @@
+<launch>
+	<node pkg="tutorial" type="subscriber.py" name="topic_subscriber" output="screen">
+	
+	</node>
+</launch>
