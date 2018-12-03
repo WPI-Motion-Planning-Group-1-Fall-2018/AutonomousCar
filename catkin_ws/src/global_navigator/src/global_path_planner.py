@@ -5,6 +5,7 @@ from geometry_msgs.msg import PoseStamped
 from std_msgs.msg import String
 import csv, math, operator
 import numpy as np
+import sys
 
 ###########################
 ##      Dictionaries     ##
@@ -354,11 +355,13 @@ def Construct_Path_Msg(x, y, length):
         
     return path
 
-def main(algorithm, start, goal):
+def main(algorithm, start, goal, nodepath,edgepath):
     
     # Pre-processing
 
-    nodes_dict, edges_dict, edges_waypoints = dictionaries('nodes.csv', 'edges.csv')
+    #nodes_dict, edges_dict, edges_waypoints = dictionaries('nodes.csv', 'edges.csv')
+    
+    nodes_dict, edges_dict, edges_waypoints = dictionaries(nodepath, edgepath)
 
     # Run algorithm of choice
 
@@ -394,7 +397,7 @@ def main(algorithm, start, goal):
 ##     Run and Publish Planning Algorithm     ##
 ################################################
 
-def talker():
+def talker(nodepath, edgepath):
     
     # Hard-coded Inputs
     
@@ -403,7 +406,7 @@ def talker():
     #goal = 3235485081 # 2-node path
     goal = 369630931 # many-node path, could be accomplished in 2 steps
     
-    path = main(algorithm, start, goal)
+    path = main(algorithm, start, goal,nodepath,edgepath)
     
     x = []
     y = []
@@ -425,7 +428,12 @@ def talker():
         rate.sleep()
 
 if __name__ == '__main__':
-    try:
-        talker()
-    except rospy.ROSInterruptException:
-        pass
+    
+    if len(sys.argv) < 3:
+        print("usage: my_node.py arg1 arg2")
+    else:
+        #my_node(sys.argv[1], sys.argv[2])
+        try:
+            talker(sys.argv[1],sys.argv[2])
+        except rospy.ROSInterruptException:
+            pass

@@ -62,7 +62,7 @@
   <node pkg="prius_controller" type="prius_controller_node" name="prius_controller" output="screen"/>
 
   <!--GLOBAL NAVIGATOR-->
-  <node pkg="global_navigator" type="global_path_planner.py" name="global_navigator" output="screen"/>
+  <node pkg="global_navigator" type="global_path_planner.py" name="global_navigator" output="screen" args="$(find global_navigator)/share/nodes.csv $(find global_navigator)/share/edges.csv"/>
 
   <!-- GLOBAL COSTMAP-->
   <node pkg="global_costmap" type="global_costmap_node" name="global_costmap_node" output="screen" args="$(find global_costmap)/share/edges.csv">
@@ -82,8 +82,9 @@
     <param name="max_inflation_radius" value="5"/>
   </node>
 
-  <!--LOCAL NAVIGATOR-->
+  <!--LOCAL NAVIGATOR
   <node pkg="local_navigator" type="local_navigator.py" name="local_navigator" output="screen"/>
+  -->
 
   <!--LOCAL PLANNER-->
   <node pkg="local_planner" type="local_planner_node" name="local_planner_node" output="screen">
