@@ -100,6 +100,7 @@ def dfs(edges_dict, start, goal):
     # Initialize start and mark as visited
     stack = [start]
     visited = [start]
+    parents = {}
 
     while stack:
         # Examine last vertex from stack
@@ -116,8 +117,17 @@ def dfs(edges_dict, start, goal):
         for neighbor in neighbors:
             if neighbor not in visited:
                 visited.append(neighbor)
+                parents[neighbor] = current_node
                 if neighbor == goal: # end search if goal is reached
-                    return visited
+                    # Reconstruct path from parents starting at end
+                    path = [goal]
+                    node = goal
+                    while node != start:
+                        node = parents[node]
+                        path.append(node)
+
+                    path.reverse()
+                    return path
                 else: # keep going
                     stack.append(neighbor)
 
@@ -401,12 +411,14 @@ def talker(nodepath, edgepath):
     
     # Hard-coded Inputs
     
-    algorithm = 3
+    algorithm = 3 #1: DFS, 2: Dijkstra, 3: A*
     start = 261123517
     #goal = 3235485081 # 2-node path
-    goal = 369630931 # many-node path, could be accomplished in 2 steps
+    goal = 369630931 # 3-node path
+    #goal = 261194271 # 13-node path
+    #goal = 2184958835 # 15-node path
     
-    path = main(algorithm, start, goal,nodepath,edgepath)
+    path = main(algorithm, start, goal, nodepath, edgepath)
     
     x = []
     y = []
