@@ -3,6 +3,7 @@ import rospy
 from nav_msgs.msg import Odometry, OccupancyGrid, MapMetaData, Path
 from std_msgs.msg import String
 import math
+import time
 from math import sin, cos, pi,tan, atan2, ceil
 from geometry_msgs.msg import Twist, PoseStamped
 import numpy as np
@@ -517,15 +518,17 @@ class LocalNavigator:
         
         
         ## BELOW ARE KEY PARAMETERS TO CONFIGURE
-        self.distBetweenWP = 2 # Desired distance between WP
-        self.mindistToNextWP = 25 # Prefer a waypoint that is out in front of car, must be less then 30
+        self.distBetweenWP = 1 # Desired distance between WP
+        self.mindistToNextWP = 20 # Prefer a waypoint that is out in front of car, must be less then 30
 
-        self.currentDesiredVelocity = 2  # Will change
-        self.defaultVelocity = 2  # Configurable Constant
-        self.maxVelocity = 2
-        self.maxAccel = 5.0
+        self.currentDesiredVelocity = 1.5  # Will change
+        self.defaultVelocity = 1.5  # Configurable Constant
+        self.maxVelocity = 1.5
+        self.maxAccel = 1.5
         
         self.Hertz = 20
+
+        time.sleep(35)
 
         ## Subscribers
         # subscribe for the car pose ground truth position

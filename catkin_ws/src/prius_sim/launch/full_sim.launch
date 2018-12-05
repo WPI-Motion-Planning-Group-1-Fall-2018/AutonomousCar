@@ -58,8 +58,8 @@
 
   <node name="spawn_urdf" pkg="gazebo_ros" type="spawn_model" args="-param robot_description -urdf -x 0 -y 15 -z 0.5 -model prius"/>
 
-  <!--CONTROL NODE-->
-  <node pkg="prius_controller" type="prius_controller_node" name="prius_controller" output="screen"/>
+  <!--CONTROL NODE -->
+  <node pkg="prius_controller" type="prius_controller_node" name="prius_controller" output="screen"/>-->
 
   <!--GLOBAL NAVIGATOR-->
   <node pkg="global_navigator" type="global_path_planner.py" name="global_navigator" output="screen"/>
@@ -82,7 +82,7 @@
     <param name="max_inflation_radius" value="5"/>
   </node>
 
-  <!--LOCAL NAVIGATOR-->
+  <!--LOCAL NAVIGATOR -->
   <node pkg="local_navigator" type="local_navigator.py" name="local_navigator" output="screen"/>
 
   <!--LOCAL PLANNER-->
@@ -92,9 +92,9 @@
     <param name="velocity_res" value = "0.1"/>
     <param name="heading_res" value = "0.005"/>
     <param name="heading_diff" value = "0.065"/>
-    <param name="goal_pos_tolerance" value = "0.25"/>
-    <param name="goal_speed_tolerance" value = "0.25"/>
-    <param name="search_res" value = "0.1"/>
+    <param name="goal_pos_tolerance" value = ".1"/>
+    <param name="goal_speed_tolerance" value = "0.5"/>
+    <param name="search_res" value = "0.25"/>
   </node>
 
   <!--FAKE LOCALIZATION-->

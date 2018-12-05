@@ -362,8 +362,8 @@ Visualization Manager:
     - Alpha: 1
       Autocompute Intensity Bounds: true
       Autocompute Value Bounds:
-        Max Value: 1.46090198
-        Min Value: -0.154279947
+        Max Value: 1.45408165
+        Min Value: -0.160036564
         Value: true
       Axis: Z
       Channel Name: intensity
@@ -461,7 +461,7 @@ Visualization Manager:
   Global Options:
     Background Color: 48; 48; 48
     Default Light: true
-    Fixed Frame: map
+    Fixed Frame: base_link
     Frame Rate: 30
   Name: root
   Tools:
@@ -491,11 +491,11 @@ Visualization Manager:
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.00999999978
-      Scale: 11.6664724
+      Scale: 9.82933903
       Target Frame: <Fixed Frame>
       Value: TopDownOrtho (rviz)
-      X: 0.408879399
-      Y: 13.9382696
+      X: 2.63756442
+      Y: -5.11813402
     Saved: ~
 Window Geometry:
   Displays:

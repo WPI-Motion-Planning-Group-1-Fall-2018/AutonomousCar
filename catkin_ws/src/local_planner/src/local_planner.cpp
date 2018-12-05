@@ -29,11 +29,12 @@ void LocalPlanner::planPath()
     ros::Duration duration;
     int count = 0;
     while(true)
-    {
+    {        
         duration = ros::Time::now() - start_time;
-        if(duration.toSec() > 2)
+        if(duration.toSec() > 1)
         {
             ROS_ERROR_STREAM("path plan time exceeded, attempting to replan");
+            ROS_INFO_STREAM(local_nav.speed << " " << local_nav.max_accel << " " << local_nav.max_speed);
             return;
         }
         GraphNode current_node = m_frontier.top();
@@ -41,7 +42,7 @@ void LocalPlanner::planPath()
         auto result = checkForGoal(current_node);
         if(result.first)
         {
-            openNode(result.second);
+            openNode(result.second);            
             //calcOccGrid();
             calcPathMsg(result.second.child_point);
             calcMPMessage();
@@ -103,7 +104,10 @@ void LocalPlanner::openNode(const GraphNode &node)
 void LocalPlanner::closeNode()
 {
     std::vector<GraphNode>::iterator it = std::find(m_tree_open.begin(), m_tree_open.end(), m_frontier.top());
-    m_tree_closed.push_back(*it);
+    if(it != m_tree_open.end())
+    {
+        m_tree_closed.push_back(*it);
+    }
     m_tree_open.erase(it);
     m_frontier.pop();
 }
